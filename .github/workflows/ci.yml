@@ -3,7 +3,23 @@ name: CI
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - 'README*.md'
+      - 'CONTRIBUTING.md'
+      - 'CHANGELOG.md'
+      - 'docs/**'
+      - '.github/ISSUE_TEMPLATE/**'
+      - '.github/PULL_REQUEST_TEMPLATE.md'
+      - 'scripts/screenshots.mjs'
   pull_request:
+    paths-ignore:
+      - 'README*.md'
+      - 'CONTRIBUTING.md'
+      - 'CHANGELOG.md'
+      - 'docs/**'
+      - '.github/ISSUE_TEMPLATE/**'
+      - '.github/PULL_REQUEST_TEMPLATE.md'
+      - 'scripts/screenshots.mjs'
   workflow_dispatch:
 
 permissions:

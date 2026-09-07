@@ -62,6 +62,23 @@ are not configured.
 
 ## Pipeline
 
+Documentation-only pushes and pull requests skip the full CI checks and platform
+builds. READMEs, contribution/changelog documents, `docs/`, issue/PR templates,
+and the screenshot capture script run only the lightweight Documentation checks
+for repository hygiene, local links, and script syntax. Changes to application
+code, dependencies, workflows, or bundled license notices still run full CI.
+Manual CI dispatch always runs the full pipeline.
+
+Release planning still runs on every main push when releases are enabled. A
+documentation-only commit does not itself request a version bump, so it does not
+start release builds unless there are unreleased feature or fix commits. Keeping
+planning enabled lets a newer documentation push recover a pending release when
+the previous build's source commit is no longer the tip of main.
+
+If branch protection is enabled later, do not require the path-filtered CI or
+Documentation workflows on every PR: GitHub leaves skipped workflow checks
+pending. See [GitHub's path-filter documentation](https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax#onpushpull_requestpull_request_targetpathspaths-ignore).
+
 1. On a main push or manual dispatch, plan the next version without publishing.
 2. Run repository hygiene, frontend, browser and Rust checks.
 3. Build Windows x64, Linux x64, macOS ARM64, macOS x64 and Android ARM packages

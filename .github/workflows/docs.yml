@@ -1,0 +1,48 @@
+name: Documentation
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'README*.md'
+      - 'CONTRIBUTING.md'
+      - 'CHANGELOG.md'
+      - 'docs/**'
+      - '.github/ISSUE_TEMPLATE/**'
+      - '.github/PULL_REQUEST_TEMPLATE.md'
+      - 'scripts/screenshots.mjs'
+      - 'scripts/check-repository.mjs'
+      - '.github/workflows/docs.yml'
+  pull_request:
+    paths:
+      - 'README*.md'
+      - 'CONTRIBUTING.md'
+      - 'CHANGELOG.md'
+      - 'docs/**'
+      - '.github/ISSUE_TEMPLATE/**'
+      - '.github/PULL_REQUEST_TEMPLATE.md'
+      - 'scripts/screenshots.mjs'
+      - 'scripts/check-repository.mjs'
+      - '.github/workflows/docs.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: docs-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  docs:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .node-version
+      - name: Check repository hygiene and documentation links
+        run: node scripts/check-repository.mjs
+      - name: Check screenshot script syntax
+        run: node --check scripts/screenshots.mjs
