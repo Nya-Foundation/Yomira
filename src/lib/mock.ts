@@ -1,10 +1,7 @@
-import {
-  CATEGORY_COLORS,
-} from "./categories";
+import { demoCover, demoPage } from "./mock/artwork";
 import type {
   ArchiverInfo,
   ArchiveResolution,
-  Category,
   Comment,
   DownloadEntry,
   DownloadedGallery,
@@ -42,53 +39,6 @@ function mulberry32(seed: number) {
 function delay(min = 180, max = 450) {
   const ms = min + Math.random() * (max - min);
   return new Promise<void>((resolve) => setTimeout(resolve, ms));
-}
-
-/* ---------- svg placeholder imagery ---------- */
-
-const svgUri = (svg: string) =>
-  `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
-
-function svgThumb(gid: number, category: Category, w: number, h: number, label = ""): string {
-  const rnd = mulberry32(gid * 2654435761 + w);
-  const hue = Math.floor(rnd() * 360);
-  const c = CATEGORY_COLORS[category].replace("#", "");
-  const r = parseInt(c.slice(0, 2), 16);
-  const g = parseInt(c.slice(2, 4), 16);
-  const b = parseInt(c.slice(4, 6), 16);
-  const x1 = Math.floor(rnd() * w);
-  const y1 = Math.floor(rnd() * h);
-  return svgUri(
-    `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">` +
-      `<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">` +
-      `<stop offset="0" stop-color="hsl(${hue} 25% 16%)"/>` +
-      `<stop offset="1" stop-color="hsl(${(hue + 60) % 360} 30% 10%)"/>` +
-      `</linearGradient></defs>` +
-      `<rect width="${w}" height="${h}" fill="url(#g)"/>` +
-      `<circle cx="${x1}" cy="${y1}" r="${Math.floor(rnd() * 60 + 20)}" fill="rgba(${r},${g},${b},0.25)"/>` +
-      `<rect x="0" y="${h - 4}" width="${w}" height="4" fill="rgba(${r},${g},${b},0.8)"/>` +
-      (label
-        ? `<text x="12" y="${h - 16}" font-family="monospace" font-size="14" fill="rgba(244,244,245,0.75)">${label}</text>`
-        : "") +
-      `</svg>`,
-  );
-}
-
-function svgPage(gid: number, index: number, w: number, h: number): string {
-  const rnd = mulberry32(gid * 97 + index * 131);
-  const hue = Math.floor(rnd() * 360);
-  const lines = Array.from({ length: 6 }, (_, i) => {
-    const y = (h / 7) * (i + 1);
-    const lw = Math.floor(rnd() * w * 0.5 + w * 0.2);
-    return `<rect x="${(w - lw) / 2}" y="${y}" width="${lw}" height="8" rx="4" fill="rgba(244,244,245,${(0.12 + rnd() * 0.15).toFixed(2)})"/>`;
-  }).join("");
-  return svgUri(
-    `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">` +
-      `<rect width="${w}" height="${h}" fill="hsl(${hue} 18% 13%)"/>` +
-      lines +
-      `<text x="20" y="36" font-family="monospace" font-size="18" fill="rgba(244,244,245,0.5)">p.${index + 1}</text>` +
-      `</svg>`,
-  );
 }
 
 /* ---------- data pools ---------- */
@@ -238,7 +188,7 @@ function makeGallery(gid: number): GalleryInfo {
     ratedCount: Math.floor(rnd() * 2400) + 5,
     favorited: Math.floor(rnd() * 5200) + 2,
     language: pick(LANGUAGES),
-    thumb: svgThumb(gid, category, 360, 480, title.split(" ").slice(0, 2).join(" ")),
+    thumb: demoCover(gid, 360, 480, title.split(" ").slice(0, 2).join(" ")),
     size: pages * Math.floor(rnd() * 900000 + 300000),
     torrentCount: rnd() > 0.55 ? Math.floor(rnd() * 3) : 0,
     fileCount: pages,
@@ -341,7 +291,7 @@ function previewFor(gid: number, index: number) {
   const rnd = mulberry32(gid * 11 + index);
   const w = 300;
   const h = Math.floor(rnd() * 120) + 380;
-  return { index, thumb: svgThumb(gid * 1000 + index, getGallery(gid).category, w, h), width: w, height: h };
+  return { index, thumb: demoCover(gid * 1000 + index, w, h), width: w, height: h };
 }
 
 const detailCache = new Map<number, GalleryDetail>();
@@ -638,7 +588,7 @@ export const mock = {
     }
     const width = 1280;
     const height = 1810;
-    return { index, url: svgPage(gid, index, width, height), width, height };
+    return { index, url: demoPage(gid, index, width, height), width, height };
   },
 
   async getFavorites(
@@ -823,7 +773,7 @@ export const mock = {
     if (!saved?.availablePages.includes(index)) {
       throw new ApiError(404, "This page is not available in the download folder.", "pageUnavailable");
     }
-    return { index, url: svgPage(gid, index, 1280, 1810), width: 1280, height: 1810 };
+    return { index, url: demoPage(gid, index, 1280, 1810), width: 1280, height: 1810 };
   },
 
   async listDownloads(): Promise<DownloadEntry[]> {
@@ -843,7 +793,7 @@ export const mock = {
         label: s.label,
         dirname: s.state === "done" || s.state === "downloading" ? `${s.gid}` : null,
         finishedPages: s.finishedPages,
-        localThumb: s.finishedPages > 0 ? svgPage(s.gid, 0, 160, 226) : null,
+        localThumb: s.finishedPages > 0 ? demoPage(s.gid, 0, 160, 226) : null,
         dirPath: s.state === "done" ? `${root}\\${s.gid}` : null,
         error: s.error,
         time: s.time,

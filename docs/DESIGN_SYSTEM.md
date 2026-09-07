@@ -49,7 +49,15 @@ Controls use an 8px radius, covers/panels 10px, tag/filter chips full rounding. 
 
 ## Review captures
 
-These captures use the existing synthetic demo fixtures, not authenticated gallery content.
+These captures use synthetic Non-H galleries and original, safe-for-work vector
+illustrations from `src/lib/mock/artwork.ts`. No account data or remote artwork
+is used. The artwork is part of this project's GPL-3.0-only source.
+
+To refresh all documentation screenshots, start `bun run dev`, then run
+`node scripts/screenshots.mjs` in another terminal. Install Chromium first with
+`bunx playwright install chromium` if needed. The capture script uses a fresh
+browser profile, blocks external requests, and waits for visible thumbnails and
+reader images to finish loading before saving desktop and mobile views.
 
 | Desktop | Narrow screens |
 | --- | --- |

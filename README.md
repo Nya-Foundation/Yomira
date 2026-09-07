@@ -4,6 +4,9 @@
 <h1 align="center">Yomira</h1>
 <p align="center">A considered space for browsing and reading.</p>
 <p align="center">
+  <strong>English</strong> · <a href="README.zh-CN.md">简体中文</a> · <a href="README.ja.md">日本語</a>
+</p>
+<p align="center">
   <a href="https://github.com/Nya-Foundation/Yomira/actions/workflows/ci.yml">CI</a> ·
   <a href="https://github.com/Nya-Foundation/Yomira/releases">Downloads</a> ·
   <a href="docs/ROADMAP.md">Roadmap</a> ·
@@ -44,7 +47,8 @@ limits are documented in [Performance](docs/PERFORMANCE.md).
 
 ## A closer look
 
-These screenshots use synthetic demo galleries, not account data.
+These screenshots use synthetic Non-H demo galleries with original, safe-for-work
+illustrations. No account data or images from the service are included.
 
 ![Desktop gallery browsing](docs/screenshots/gallery-list.png)
 
@@ -55,12 +59,11 @@ These screenshots use synthetic demo galleries, not account data.
 
 ## Get Yomira
 
-Installable packages are published to [GitHub Releases](https://github.com/Nya-Foundation/Yomira/releases)
-when the release build and Android signing configuration are ready.
+Download installable packages from [GitHub Releases](https://github.com/Nya-Foundation/Yomira/releases).
 
 | Platform | Package | Build coverage |
 | --- | --- | --- |
-| Android 7.0+ | Universal APK: ARM64 and ARMv7 | CI build; release requires a signing key |
+| Android 7.0+ | Universal APK: ARM64 and ARMv7 | CI build; signed releases |
 | Windows x64 | `.exe` installer | CI build; unsigned |
 | Linux x64 | `.deb`, `.AppImage` | Ubuntu 22.04 build baseline |
 | macOS | `.dmg` for Apple Silicon and Intel | CI build; unsigned and not notarized |
