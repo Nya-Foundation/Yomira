@@ -57,7 +57,7 @@
   "license": "GPL-3.0-only",
   "repository": {
     "type": "git",
-    "url": "https://github.com/k3scat/Yomira.git"
+    "url": "https://github.com/Nya-Foundation/Yomira.git"
   },
   "engines": {
     "node": ">=24.10.0 <25"

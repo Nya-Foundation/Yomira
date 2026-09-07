@@ -4,8 +4,8 @@
 <h1 align="center">Yomira</h1>
 <p align="center">A considered space for browsing and reading.</p>
 <p align="center">
-  <a href="https://github.com/k3scat/Yomira/actions/workflows/ci.yml">CI</a> ·
-  <a href="https://github.com/k3scat/Yomira/releases">Downloads</a> ·
+  <a href="https://github.com/Nya-Foundation/Yomira/actions/workflows/ci.yml">CI</a> ·
+  <a href="https://github.com/Nya-Foundation/Yomira/releases">Downloads</a> ·
   <a href="docs/ROADMAP.md">Roadmap</a> ·
   <a href="CONTRIBUTING.md">Contributing</a>
 </p>
@@ -55,7 +55,7 @@ These screenshots use synthetic demo galleries, not account data.
 
 ## Get Yomira
 
-Installable packages are published to [GitHub Releases](https://github.com/k3scat/Yomira/releases)
+Installable packages are published to [GitHub Releases](https://github.com/Nya-Foundation/Yomira/releases)
 when the release build and Android signing configuration are ready.
 
 | Platform | Package | Build coverage |
@@ -74,7 +74,7 @@ Install [Tauri's platform prerequisites](https://v2.tauri.app/start/prerequisite
 Rust (the repository pins 1.92.0), Node.js 24.10+ in the 24.x series, and Bun 1.2.18.
 
 ```sh
-git clone https://github.com/k3scat/Yomira.git
+git clone https://github.com/Nya-Foundation/Yomira.git
 cd Yomira
 bun install --frozen-lockfile
 bun run tauri dev

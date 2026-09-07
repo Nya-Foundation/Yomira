@@ -1,6 +1,6 @@
 # Changelog
 
-Automated releases publish their changes in [GitHub Releases](https://github.com/k3scat/Yomira/releases).
+Automated releases publish their changes in [GitHub Releases](https://github.com/Nya-Foundation/Yomira/releases).
 The milestones below summarize local development before public release.
 
 ## 0.2.2

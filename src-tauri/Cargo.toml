@@ -5,7 +5,7 @@ description = "Yomira cross-platform gallery browser"
 edition = "2021"
 rust-version = "1.92"
 license = "GPL-3.0-only"
-repository = "https://github.com/k3scat/Yomira"
+repository = "https://github.com/Nya-Foundation/Yomira"
 publish = false
 
 [lib]
