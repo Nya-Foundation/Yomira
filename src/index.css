@@ -1,0 +1,202 @@
+@import "tailwindcss";
+
+@theme {
+  /* dark-first palette (default) */
+  --color-background: #0a0a0c;
+  --color-elevated: #121215;
+  --color-surface: #141417;
+  --color-surface-2: #1b1b20;
+  --color-overlay: #232329;
+  --color-border: #27272a99;
+  --color-border-strong: #3f3f4699;
+  --color-foreground: #f4f4f5;
+  --color-muted-foreground: #a1a1aa;
+  --color-faint-foreground: #9696a0;
+  --color-accent: #fb7185;
+  --color-accent-foreground: #1c080d;
+  --color-success: #34d399;
+  --color-warning: #fbbf24;
+  --color-danger: #f87171;
+
+  /* one radius system: cards/inputs 10, buttons 8, pills full */
+  --radius-md: 8px;
+  --radius-lg: 10px;
+  --radius-xl: 10px;
+
+  /* type scale (1.25 ratio, rem; base 13) */
+  --text-caption: 0.846rem; /* 11 */
+  --text-small: 0.923rem; /* 12 */
+  --text-base: 1rem; /* 13 */
+  --text-emphasis: 1.154rem; /* 15 */
+  --text-title: 1.462rem; /* 19 */
+  --text-heading: 1.846rem; /* 24 */
+  --text-display: 2.308rem; /* 30 */
+
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+  --font-mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas,
+    "Liberation Mono", monospace;
+
+  --ease-standard: cubic-bezier(0.16, 1, 0.3, 1);
+  --default-transition-duration: 180ms;
+  --default-transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+:root {
+  color-scheme: dark;
+}
+
+:root.light {
+  --color-background: #fafafa;
+  --color-elevated: #f4f4f5;
+  --color-surface: #ffffff;
+  --color-surface-2: #f4f4f5;
+  --color-overlay: #e4e4e7;
+  --color-border: #e4e4e799;
+  --color-border-strong: #d4d4d899;
+  --color-foreground: #18181b;
+  --color-muted-foreground: #52525b;
+  --color-faint-foreground: #666670;
+  --color-accent: #e11d48;
+  --color-accent-foreground: #ffffff;
+  --color-success: #059669;
+  --color-warning: #d97706;
+  --color-danger: #dc2626;
+  color-scheme: light;
+}
+
+html {
+  font-size: 14px;
+}
+
+body {
+  @apply bg-background text-foreground font-sans antialiased;
+  line-height: 1.55;
+  overflow: hidden;
+}
+
+/* thin scrollbars */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-overlay) transparent;
+}
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+*::-webkit-scrollbar-thumb {
+  background: var(--color-overlay);
+  border-radius: 8px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* visible focus rings (accent/40) */
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+.app-shell { padding-top: env(safe-area-inset-top); }
+.app-main { padding-bottom: calc(4rem + env(safe-area-inset-bottom)); }
+.mobile-nav { padding-bottom: env(safe-area-inset-bottom); }
+@media (min-width: 48rem) { .app-main { padding-bottom: 0; } }
+
+.skip-link {
+  position: fixed;
+  top: -100px;
+  left: 1rem;
+  z-index: 100;
+  padding: .75rem 1rem;
+  background: var(--color-surface);
+  color: var(--color-foreground);
+  border-radius: var(--radius-md);
+}
+.skip-link:focus { top: 1rem; }
+
+.app-modal { padding: 0; color: var(--color-foreground); }
+.app-modal::backdrop { background: rgb(9 9 11 / .65); }
+.app-dialog {
+  margin: auto;
+  padding: 1.25rem;
+  max-width: min(32rem, calc(100vw - 2rem));
+  max-height: calc(100dvh - 2rem);
+  overflow-y: auto;
+}
+.app-dialog[open] { animation: dialog-in 180ms var(--ease-standard); }
+.app-sheet {
+  margin: 0 0 0 auto;
+  height: 100dvh;
+  max-height: 100dvh;
+  max-width: 100vw;
+}
+.app-sheet[open] { animation: sheet-in 180ms var(--ease-standard); }
+
+/* Keyboard and touch users need the same discoverable secondary actions. */
+button:focus-visible { opacity: 1; }
+@media (pointer: coarse) {
+  button, a[aria-label], select, input:not([type="checkbox"]):not([type="range"]) { min-height: 44px; }
+  button.opacity-0 { opacity: 1; }
+}
+
+::selection {
+  background: color-mix(in srgb, var(--color-accent) 30%, transparent);
+}
+
+/* density mode: comfortable default, compact drives real spacing tokens */
+[data-density] {
+  --density-pad: 12px;
+  --density-row-pad: 12px;
+  --density-card-gap: 0.5rem;
+}
+.dense [data-density] {
+  --density-pad: 8px;
+  --density-row-pad: 8px;
+  --density-card-gap: 0.375rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes sheet-in {
+  from {
+    transform: translateX(24px);
+    opacity: 0.6;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+@keyframes dialog-in {
+  from {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}

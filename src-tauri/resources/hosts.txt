@@ -1,0 +1,47 @@
+# Adapted from EhHosts.java, Copyright 2018 Hippo Seven (Apache-2.0).
+# See licenses/Apache-2.0.txt and NOTICE.
+# Built-in fallback addresses from Ehviewer_CN_SXJ client/EhHosts.java.
+# Custom hosts replace this table when applied in Network settings.
+104.20.18.168 e-hentai.org
+104.20.19.168 e-hentai.org
+172.66.132.196 e-hentai.org
+172.66.140.62 e-hentai.org
+172.67.2.238 e-hentai.org
+104.20.18.168 repo.e-hentai.org
+104.20.19.168 repo.e-hentai.org
+172.67.2.238 repo.e-hentai.org
+172.66.132.196 forums.e-hentai.org
+172.66.140.62 forums.e-hentai.org
+89.149.221.236 upld.e-hentai.org
+95.211.208.236 upld.e-hentai.org
+109.236.85.28 ehgt.org
+62.112.8.21 ehgt.org
+89.39.106.43 ehgt.org
+2a00:7c80:0:123::3a85 ehgt.org
+2a00:7c80:0:12d::38a1 ehgt.org
+2a00:7c80:0:13b::37a4 ehgt.org
+151.101.0.133 raw.githubusercontent.com
+151.101.64.133 raw.githubusercontent.com
+151.101.128.133 raw.githubusercontent.com
+151.101.192.133 raw.githubusercontent.com
+178.175.128.251 exhentai.org
+178.175.128.252 exhentai.org
+178.175.128.253 exhentai.org
+178.175.128.254 exhentai.org
+178.175.129.251 exhentai.org
+178.175.129.252 exhentai.org
+178.175.129.253 exhentai.org
+178.175.129.254 exhentai.org
+178.175.132.19 exhentai.org
+178.175.132.20 exhentai.org
+178.175.132.21 exhentai.org
+178.175.132.22 exhentai.org
+178.175.132.22 upld.exhentai.org
+178.175.129.254 upld.exhentai.org
+178.175.128.254 upld.exhentai.org
+178.175.129.253 s.exhentai.org
+178.175.129.254 s.exhentai.org
+178.175.128.253 s.exhentai.org
+178.175.128.254 s.exhentai.org
+178.175.132.21 s.exhentai.org
+178.175.132.22 s.exhentai.org

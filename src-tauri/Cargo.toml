@@ -1,0 +1,38 @@
+[package]
+name = "yomira"
+version = "0.2.2"
+description = "Yomira cross-platform gallery browser"
+edition = "2021"
+rust-version = "1.92"
+license = "GPL-3.0-only"
+repository = "https://github.com/k3scat/Yomira"
+publish = false
+
+[lib]
+# The `_lib` suffix may seem redundant but it is necessary
+# to make the lib name unique and wouldn't conflict with the bin name.
+# This seems to be only an issue on Windows, see https://github.com/rust-lang/cargo/issues/8519
+name = "yomira_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = ["protocol-asset", "devtools"] }
+tauri-plugin-opener = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tokio = { version = "1.53.1", features = ["full"] }
+scraper = "0.27.0"
+thiserror = "2.0.20"
+regex = "1.13.1"
+chrono = "0.4.45"
+base64 = "0.23.1"
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "cookies", "brotli", "gzip", "json", "multipart", "socks", "stream"] }
+tauri-plugin-store = "2.4.4"
+rusqlite = { version = "0.32", features = ["bundled"] }
+
+[target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
+tauri-plugin-window-state = "2.4.1"
+tauri-plugin-single-instance = "2.4.4"

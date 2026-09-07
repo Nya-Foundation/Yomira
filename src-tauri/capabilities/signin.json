@@ -1,0 +1,9 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "signin",
+  "description": "Narrow capability for the transient forums sign-in window. The hidden __cookie_probe command is a custom command and needs no permission; this only grants the window core defaults.",
+  "windows": ["signin"],
+  "permissions": [
+    "core:default"
+  ]
+}

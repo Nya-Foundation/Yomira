@@ -1,0 +1,5 @@
+{"units":"microseconds per operation","optimized":true,"fixtures":[
+{"pages":100,"metadataBytes":3629,"headerUs":2.770,"scanUs":148.648,"pageLookupUs":1.364}
+,{"pages":1000,"metadataBytes":36930,"headerUs":2.963,"scanUs":1467.496,"pageLookupUs":1.260}
+,{"pages":10000,"metadataBytes":378931,"headerUs":2.981,"scanUs":14738.735,"pageLookupUs":1.373}
+]}

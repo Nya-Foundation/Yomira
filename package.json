@@ -1,0 +1,65 @@
+{
+  "name": "yomira",
+  "private": true,
+  "version": "0.2.2",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "bun run check && vite build",
+    "preview": "vite preview",
+    "tauri": "tauri",
+    "gen:icons": "node scripts/gen-icons.mjs",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "build:profile": "bun run check && vite build --mode profile",
+    "profile:ui": "node scripts/profiling/ui.mjs",
+    "profile:storage": "node scripts/profiling/storage.mjs",
+    "check": "tsc --noEmit && tsc -p tsconfig.node.json --noEmit",
+    "test:unit": "bun test ./tests/*.test.ts",
+    "release": "semantic-release",
+    "release:plan": "node scripts/release/plan.mjs",
+    "version:sync": "node scripts/release/version.mjs",
+    "test:release": "node --test tests/release.test.mjs",
+    "check:repo": "node scripts/check-repository.mjs"
+  },
+  "dependencies": {
+    "@tanstack/react-query": "^5.102.8",
+    "@tanstack/react-virtual": "^3.14.10",
+    "@tauri-apps/api": "^2",
+    "@tauri-apps/plugin-opener": "^2",
+    "@tauri-apps/plugin-store": "^2.4.4",
+    "clsx": "^2.1.1",
+    "dompurify": "^3.4.14",
+    "lucide-react": "^1.40.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "react-router-dom": "^7.18.3",
+    "tailwind-merge": "^3.6.0",
+    "zustand": "^5.0.15"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.62.1",
+    "@semantic-release/commit-analyzer": "13.0.1",
+    "@semantic-release/git": "11.0.1",
+    "@semantic-release/github": "12.0.9",
+    "@semantic-release/release-notes-generator": "14.1.1",
+    "@tailwindcss/vite": "^4.3.3",
+    "@tauri-apps/cli": "^2",
+    "@types/react": "^19.1.8",
+    "@types/react-dom": "^19.1.6",
+    "@vitejs/plugin-react": "^4.6.0",
+    "semantic-release": "25.0.9",
+    "tailwindcss": "^4.3.3",
+    "typescript": "~5.8.3",
+    "vite": "^7.0.4"
+  },
+  "packageManager": "bun@1.2.18",
+  "license": "GPL-3.0-only",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/k3scat/Yomira.git"
+  },
+  "engines": {
+    "node": ">=24.10.0 <25"
+  }
+}

@@ -1,0 +1,527 @@
+{
+  "environment": {
+    "os": "linux",
+    "arch": "x64",
+    "cpu": "AMD Ryzen 7 9800X3D 8-Core Processor",
+    "chromium": "151.0.7922.34",
+    "viewport": "1440x900",
+    "runs": 5,
+    "fixture": "deterministic IPC; SVG pages; no real network or native startup"
+  },
+  "medians": {
+    "readyMs": 866.8000000715256,
+    "jsBytes": 456631,
+    "coldTaskMs": 145.33499999999998,
+    "scrollTaskMs": 588.861,
+    "scrollFrameP95Ms": 18.600000023841858,
+    "turnP95Ms": 16,
+    "idleMetadataCalls": 1
+  },
+  "samples": [
+    {
+      "readyMs": 1001.7999999523163,
+      "readerReadyMs": 837.3999999761581,
+      "cold": {
+        "taskMs": 267.34400000000005,
+        "scriptMs": 111.808,
+        "layoutMs": 36.021,
+        "nodes": 1338,
+        "heapBytes": 7331688
+      },
+      "jsBytes": 456631,
+      "resources": [
+        {
+          "file": "/assets/index-CB2CfzQ8.js",
+          "bytes": 309357
+        },
+        {
+          "file": "/assets/vendor-react-VzW-9XiB.js",
+          "bytes": 49736
+        },
+        {
+          "file": "/assets/vendor-query-DGcXWANU.js",
+          "bytes": 36939
+        },
+        {
+          "file": "/assets/GalleryListPage-CG44zQi2.js",
+          "bytes": 23439
+        },
+        {
+          "file": "/assets/use-toasted-mutation-BB6EvVQP.js",
+          "bytes": 463
+        },
+        {
+          "file": "/assets/gallery-grid-Ck1ilhE2.js",
+          "bytes": 5282
+        },
+        {
+          "file": "/assets/index-Ds7XYRl1.js",
+          "bytes": 24245
+        },
+        {
+          "file": "/assets/cached-image-Cs1LO9Fc.js",
+          "bytes": 1129
+        },
+        {
+          "file": "/assets/empty-state-DSmxhb21.js",
+          "bytes": 719
+        },
+        {
+          "file": "/assets/rating-hearts-CzbNhKv5.js",
+          "bytes": 696
+        },
+        {
+          "file": "/assets/error-state-D6RNCxDQ.js",
+          "bytes": 1233
+        },
+        {
+          "file": "/assets/button-C5cBOsJf.js",
+          "bytes": 1287
+        },
+        {
+          "file": "/assets/switch-YboM_51F.js",
+          "bytes": 775
+        },
+        {
+          "file": "/assets/select-djfFrHyF.js",
+          "bytes": 822
+        },
+        {
+          "file": "/assets/chevron-down-CETDnVkK.js",
+          "bytes": 129
+        },
+        {
+          "file": "/assets/separator-BhTGy6_R.js",
+          "bytes": 226
+        },
+        {
+          "file": "/assets/plus-CSug0scH.js",
+          "bytes": 154
+        }
+      ],
+      "scroll": {
+        "taskMs": 668.662,
+        "scriptMs": 224.93200000000002,
+        "layoutMs": 23.67,
+        "nodes": 4725,
+        "heapBytes": 6086416,
+        "frameP95Ms": 18.699999928474426,
+        "framesOver50Ms": 0,
+        "cards": 42,
+        "listCalls": 9
+      },
+      "reader": {
+        "turnP50Ms": 15.700000047683716,
+        "turnP95Ms": 15.900000095367432,
+        "retainedHeapDeltaBytes": 740464,
+        "continuousImages": 7,
+        "idleTaskMs": 4.074999999999989,
+        "idleMetadataCalls": 1
+      }
+    },
+    {
+      "readyMs": 866.3999999761581,
+      "readerReadyMs": 859.5,
+      "cold": {
+        "taskMs": 187.78400000000002,
+        "scriptMs": 80.197,
+        "layoutMs": 11.325999999999999,
+        "nodes": 1203,
+        "heapBytes": 7139600
+      },
+      "jsBytes": 456631,
+      "resources": [
+        {
+          "file": "/assets/index-CB2CfzQ8.js",
+          "bytes": 309357
+        },
+        {
+          "file": "/assets/vendor-react-VzW-9XiB.js",
+          "bytes": 49736
+        },
+        {
+          "file": "/assets/vendor-query-DGcXWANU.js",
+          "bytes": 36939
+        },
+        {
+          "file": "/assets/GalleryListPage-CG44zQi2.js",
+          "bytes": 23439
+        },
+        {
+          "file": "/assets/use-toasted-mutation-BB6EvVQP.js",
+          "bytes": 463
+        },
+        {
+          "file": "/assets/gallery-grid-Ck1ilhE2.js",
+          "bytes": 5282
+        },
+        {
+          "file": "/assets/cached-image-Cs1LO9Fc.js",
+          "bytes": 1129
+        },
+        {
+          "file": "/assets/index-Ds7XYRl1.js",
+          "bytes": 24245
+        },
+        {
+          "file": "/assets/rating-hearts-CzbNhKv5.js",
+          "bytes": 696
+        },
+        {
+          "file": "/assets/empty-state-DSmxhb21.js",
+          "bytes": 719
+        },
+        {
+          "file": "/assets/error-state-D6RNCxDQ.js",
+          "bytes": 1233
+        },
+        {
+          "file": "/assets/button-C5cBOsJf.js",
+          "bytes": 1287
+        },
+        {
+          "file": "/assets/switch-YboM_51F.js",
+          "bytes": 775
+        },
+        {
+          "file": "/assets/select-djfFrHyF.js",
+          "bytes": 822
+        },
+        {
+          "file": "/assets/chevron-down-CETDnVkK.js",
+          "bytes": 129
+        },
+        {
+          "file": "/assets/separator-BhTGy6_R.js",
+          "bytes": 226
+        },
+        {
+          "file": "/assets/plus-CSug0scH.js",
+          "bytes": 154
+        }
+      ],
+      "scroll": {
+        "taskMs": 656.446,
+        "scriptMs": 233.26999999999998,
+        "layoutMs": 22.705,
+        "nodes": 5595,
+        "heapBytes": 13944732,
+        "frameP95Ms": 19,
+        "framesOver50Ms": 0,
+        "cards": 42,
+        "listCalls": 9
+      },
+      "reader": {
+        "turnP50Ms": 15.699999928474426,
+        "turnP95Ms": 15.900000095367432,
+        "retainedHeapDeltaBytes": 752332,
+        "continuousImages": 7,
+        "idleTaskMs": 4.329999999999984,
+        "idleMetadataCalls": 1
+      }
+    },
+    {
+      "readyMs": 866.8000000715256,
+      "readerReadyMs": 839.8000000715256,
+      "cold": {
+        "taskMs": 145.33499999999998,
+        "scriptMs": 72.48400000000001,
+        "layoutMs": 10.215,
+        "nodes": 1203,
+        "heapBytes": 7136560
+      },
+      "jsBytes": 456631,
+      "resources": [
+        {
+          "file": "/assets/index-CB2CfzQ8.js",
+          "bytes": 309357
+        },
+        {
+          "file": "/assets/vendor-react-VzW-9XiB.js",
+          "bytes": 49736
+        },
+        {
+          "file": "/assets/vendor-query-DGcXWANU.js",
+          "bytes": 36939
+        },
+        {
+          "file": "/assets/GalleryListPage-CG44zQi2.js",
+          "bytes": 23439
+        },
+        {
+          "file": "/assets/use-toasted-mutation-BB6EvVQP.js",
+          "bytes": 463
+        },
+        {
+          "file": "/assets/gallery-grid-Ck1ilhE2.js",
+          "bytes": 5282
+        },
+        {
+          "file": "/assets/index-Ds7XYRl1.js",
+          "bytes": 24245
+        },
+        {
+          "file": "/assets/cached-image-Cs1LO9Fc.js",
+          "bytes": 1129
+        },
+        {
+          "file": "/assets/rating-hearts-CzbNhKv5.js",
+          "bytes": 696
+        },
+        {
+          "file": "/assets/empty-state-DSmxhb21.js",
+          "bytes": 719
+        },
+        {
+          "file": "/assets/error-state-D6RNCxDQ.js",
+          "bytes": 1233
+        },
+        {
+          "file": "/assets/button-C5cBOsJf.js",
+          "bytes": 1287
+        },
+        {
+          "file": "/assets/switch-YboM_51F.js",
+          "bytes": 775
+        },
+        {
+          "file": "/assets/select-djfFrHyF.js",
+          "bytes": 822
+        },
+        {
+          "file": "/assets/chevron-down-CETDnVkK.js",
+          "bytes": 129
+        },
+        {
+          "file": "/assets/separator-BhTGy6_R.js",
+          "bytes": 226
+        },
+        {
+          "file": "/assets/plus-CSug0scH.js",
+          "bytes": 154
+        }
+      ],
+      "scroll": {
+        "taskMs": 569.172,
+        "scriptMs": 206.13799999999995,
+        "layoutMs": 18.612,
+        "nodes": 4150,
+        "heapBytes": 5773948,
+        "frameP95Ms": 18.600000023841858,
+        "framesOver50Ms": 0,
+        "cards": 42,
+        "listCalls": 9
+      },
+      "reader": {
+        "turnP50Ms": 15.700000047683716,
+        "turnP95Ms": 16,
+        "retainedHeapDeltaBytes": 752132,
+        "continuousImages": 7,
+        "idleTaskMs": 4.4669999999999845,
+        "idleMetadataCalls": 1
+      }
+    },
+    {
+      "readyMs": 1001,
+      "readerReadyMs": 839.6000000238419,
+      "cold": {
+        "taskMs": 134.71099999999998,
+        "scriptMs": 62.489999999999995,
+        "layoutMs": 10.501,
+        "nodes": 1203,
+        "heapBytes": 6888500
+      },
+      "jsBytes": 456631,
+      "resources": [
+        {
+          "file": "/assets/index-CB2CfzQ8.js",
+          "bytes": 309357
+        },
+        {
+          "file": "/assets/vendor-react-VzW-9XiB.js",
+          "bytes": 49736
+        },
+        {
+          "file": "/assets/vendor-query-DGcXWANU.js",
+          "bytes": 36939
+        },
+        {
+          "file": "/assets/GalleryListPage-CG44zQi2.js",
+          "bytes": 23439
+        },
+        {
+          "file": "/assets/use-toasted-mutation-BB6EvVQP.js",
+          "bytes": 463
+        },
+        {
+          "file": "/assets/gallery-grid-Ck1ilhE2.js",
+          "bytes": 5282
+        },
+        {
+          "file": "/assets/index-Ds7XYRl1.js",
+          "bytes": 24245
+        },
+        {
+          "file": "/assets/cached-image-Cs1LO9Fc.js",
+          "bytes": 1129
+        },
+        {
+          "file": "/assets/rating-hearts-CzbNhKv5.js",
+          "bytes": 696
+        },
+        {
+          "file": "/assets/empty-state-DSmxhb21.js",
+          "bytes": 719
+        },
+        {
+          "file": "/assets/error-state-D6RNCxDQ.js",
+          "bytes": 1233
+        },
+        {
+          "file": "/assets/button-C5cBOsJf.js",
+          "bytes": 1287
+        },
+        {
+          "file": "/assets/switch-YboM_51F.js",
+          "bytes": 775
+        },
+        {
+          "file": "/assets/select-djfFrHyF.js",
+          "bytes": 822
+        },
+        {
+          "file": "/assets/chevron-down-CETDnVkK.js",
+          "bytes": 129
+        },
+        {
+          "file": "/assets/separator-BhTGy6_R.js",
+          "bytes": 226
+        },
+        {
+          "file": "/assets/plus-CSug0scH.js",
+          "bytes": 154
+        }
+      ],
+      "scroll": {
+        "taskMs": 588.861,
+        "scriptMs": 209.19399999999996,
+        "layoutMs": 19.258000000000003,
+        "nodes": 2305,
+        "heapBytes": 10511508,
+        "frameP95Ms": 18.5,
+        "framesOver50Ms": 0,
+        "cards": 42,
+        "listCalls": 9
+      },
+      "reader": {
+        "turnP50Ms": 15.800000071525574,
+        "turnP95Ms": 16.100000023841858,
+        "retainedHeapDeltaBytes": 759732,
+        "continuousImages": 7,
+        "idleTaskMs": 3.964999999999975,
+        "idleMetadataCalls": 1
+      }
+    },
+    {
+      "readyMs": 865.8999999761581,
+      "readerReadyMs": 832.7999999523163,
+      "cold": {
+        "taskMs": 137.35500000000002,
+        "scriptMs": 66.479,
+        "layoutMs": 10.477,
+        "nodes": 1203,
+        "heapBytes": 6888468
+      },
+      "jsBytes": 456631,
+      "resources": [
+        {
+          "file": "/assets/index-CB2CfzQ8.js",
+          "bytes": 309357
+        },
+        {
+          "file": "/assets/vendor-react-VzW-9XiB.js",
+          "bytes": 49736
+        },
+        {
+          "file": "/assets/vendor-query-DGcXWANU.js",
+          "bytes": 36939
+        },
+        {
+          "file": "/assets/use-toasted-mutation-BB6EvVQP.js",
+          "bytes": 463
+        },
+        {
+          "file": "/assets/GalleryListPage-CG44zQi2.js",
+          "bytes": 23439
+        },
+        {
+          "file": "/assets/gallery-grid-Ck1ilhE2.js",
+          "bytes": 5282
+        },
+        {
+          "file": "/assets/empty-state-DSmxhb21.js",
+          "bytes": 719
+        },
+        {
+          "file": "/assets/rating-hearts-CzbNhKv5.js",
+          "bytes": 696
+        },
+        {
+          "file": "/assets/cached-image-Cs1LO9Fc.js",
+          "bytes": 1129
+        },
+        {
+          "file": "/assets/index-Ds7XYRl1.js",
+          "bytes": 24245
+        },
+        {
+          "file": "/assets/error-state-D6RNCxDQ.js",
+          "bytes": 1233
+        },
+        {
+          "file": "/assets/button-C5cBOsJf.js",
+          "bytes": 1287
+        },
+        {
+          "file": "/assets/switch-YboM_51F.js",
+          "bytes": 775
+        },
+        {
+          "file": "/assets/select-djfFrHyF.js",
+          "bytes": 822
+        },
+        {
+          "file": "/assets/chevron-down-CETDnVkK.js",
+          "bytes": 129
+        },
+        {
+          "file": "/assets/separator-BhTGy6_R.js",
+          "bytes": 226
+        },
+        {
+          "file": "/assets/plus-CSug0scH.js",
+          "bytes": 154
+        }
+      ],
+      "scroll": {
+        "taskMs": 579.63,
+        "scriptMs": 209.74899999999997,
+        "layoutMs": 18.933,
+        "nodes": 3950,
+        "heapBytes": 3513948,
+        "frameP95Ms": 18.5,
+        "framesOver50Ms": 0,
+        "cards": 42,
+        "listCalls": 9
+      },
+      "reader": {
+        "turnP50Ms": 15.799999952316284,
+        "turnP95Ms": 16,
+        "retainedHeapDeltaBytes": 757852,
+        "continuousImages": 7,
+        "idleTaskMs": 4.263000000000005,
+        "idleMetadataCalls": 1
+      }
+    }
+  ]
+}
