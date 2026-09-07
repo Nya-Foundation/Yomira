@@ -20,6 +20,23 @@ No npm token is needed: this is an application, not a published npm package.
 Desktop signing certificates are not yet configured. Android release signing
 is mandatory; unsigned CI APKs are build artifacts, not installable releases.
 
+## Android release signing identity
+
+The public release certificate uses RSA-4096. Its SHA-256 fingerprint is:
+
+```text
+f8f48add1dec22298d055e320ae37a1d8c28948b07c81d1011d9069aea978447
+```
+
+Use `apksigner verify --print-certs <apk>` to compare an APK's signer with this
+fingerprint. The private PKCS12 keystore and passwords are kept outside the
+repository and supplied to the release workflow through Actions secrets.
+
+This identity differs from the earlier local test-build key. Those installations
+cannot update directly to release APKs; switching requires uninstalling the test
+build first, which removes its private app data. Preserve anything you need
+before switching. Future release APKs use this same release identity.
+
 ## Version policy
 
 [semantic-release](https://github.com/semantic-release/semantic-release)

@@ -10,15 +10,15 @@ set -euo pipefail
 signing_dir=$(mktemp -d)
 trap 'rm -rf "$signing_dir"' EXIT
 chmod 700 "$signing_dir"
-printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$signing_dir/release.jks"
-chmod 600 "$signing_dir/release.jks"
+printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$signing_dir/release.keystore"
+chmod 600 "$signing_dir/release.keystore"
 
 build_tools="$ANDROID_HOME/build-tools/36.0.0"
 unsigned_apk=src-tauri/gen/android/app/build/outputs/apk/universal/release/app-universal-release-unsigned.apk
 "$build_tools/zipalign" -P 16 -f 4 "$unsigned_apk" "$signing_dir/aligned.apk"
 mkdir "$signing_dir/signed"
 "$build_tools/apksigner" sign \
-  --ks "$signing_dir/release.jks" --ks-key-alias "$ANDROID_KEY_ALIAS" \
+  --ks "$signing_dir/release.keystore" --ks-key-alias "$ANDROID_KEY_ALIAS" \
   --ks-pass env:ANDROID_KEYSTORE_PASSWORD --key-pass env:ANDROID_KEY_PASSWORD \
   --out "$signing_dir/signed/yomira.apk" "$signing_dir/aligned.apk"
 "$build_tools/apksigner" verify --verbose "$signing_dir/signed/yomira.apk"

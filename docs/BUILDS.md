@@ -78,7 +78,7 @@ It supports ARM64 and ARMv7, minimum API 24 (Android 7.0), with target API 36.
 An unsigned APK cannot be installed. To sign it, provide these environment
 variables from your private secret store:
 
-- `ANDROID_KEYSTORE_BASE64`: base64-encoded JKS keystore.
+- `ANDROID_KEYSTORE_BASE64`: base64-encoded PKCS12 or JKS keystore.
 - `ANDROID_KEY_ALIAS`: alias in the keystore.
 - `ANDROID_KEYSTORE_PASSWORD`: keystore password.
 - `ANDROID_KEY_PASSWORD`: key password.
