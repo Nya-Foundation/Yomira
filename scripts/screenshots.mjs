@@ -36,7 +36,7 @@ try {
         return rect.width > 0 && rect.height > 0 && rect.top < innerHeight && rect.bottom > 0
           && rect.left < innerWidth && rect.right > 0 && getComputedStyle(element).visibility !== 'hidden';
       };
-      if ([...document.querySelectorAll('[role="img"], .animate-pulse')].some(visible)) return false;
+      if ([...document.querySelectorAll('[role="img"], .animate-pulse, .animate-spin')].some(visible)) return false;
       const images = [...document.images].filter(visible);
       return (!requireImages || images.length > 0) && images.every(image => image.complete && image.naturalWidth > 0);
     }, images);
@@ -91,6 +91,9 @@ try {
   await page.goto(origin + '/settings');
   await expect(page.getByRole('heading', { name: 'Settings', exact: true })).toBeVisible();
   await expect(page.locator('html')).toHaveClass(/light/);
+  await expect(page.getByRole('combobox', { name: 'Theme', exact: true })).toHaveValue('light');
+  await expect(page.getByRole('combobox', { name: 'Language', exact: true })).toBeVisible();
+  await expect(page.getByRole('combobox', { name: 'Display scale', exact: true })).toBeVisible();
   await capture('settings-light-mobile.png', { images: false });
   if (errors.length) throw new Error(errors.join('\n'));
 } finally {
