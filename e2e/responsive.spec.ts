@@ -63,10 +63,10 @@ test("browsing destinations retain independent searches", async ({ page }) => {
   const search = page.getByRole("combobox", { name: "Search galleries", exact: true });
   await search.fill("language:english");
   await expect.poll(() => page.evaluate(() => JSON.parse(sessionStorage.getItem("exviewer.liststate.home")!).params.search)).toBe("language:english");
-  await page.getByRole("link", { name: "Popular", exact: true }).click();
+  await page.getByRole("link", { name: "Watched", exact: true }).click();
   await expect(search).toHaveValue("");
   await search.fill("language:japanese");
-  await expect.poll(() => page.evaluate(() => JSON.parse(sessionStorage.getItem("exviewer.liststate.popular")!).params.search)).toBe("language:japanese");
+  await expect.poll(() => page.evaluate(() => JSON.parse(sessionStorage.getItem("exviewer.liststate.watched")!).params.search)).toBe("language:japanese");
   await page.getByRole("link", { name: "Home", exact: true }).click();
   await expect(search).toHaveValue("language:english");
 });
@@ -104,4 +104,20 @@ test("feedback remains visible when another modal opens", async ({ page }) => {
   await expect(page.locator('[aria-live="polite"]')).toContainText("Label created");
   await page.getByRole("button", { name: "New label", exact: true }).click();
   await expect(dialog.locator('[aria-live="polite"]')).toContainText("Label created");
+});
+
+// The popular feed is a single fixed page: the backend discards keyword,
+// categories, advanced search and even the page number for it. Showing those
+// controls would show filters that silently do nothing.
+test("popular offers no filter the feed cannot honour", async ({ page }) => {
+  await page.goto("/popular");
+  await expect(page.locator("[data-load-more]")).toBeVisible();
+  await expect(page.getByRole("combobox", { name: "Search galleries", exact: true })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Category filters" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Advanced search" })).toHaveCount(0);
+
+  // Home still has all three.
+  await page.goto("/");
+  await expect(page.getByRole("combobox", { name: "Search galleries", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Category filters" })).toBeVisible();
 });

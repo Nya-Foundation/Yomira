@@ -60,6 +60,8 @@ const en = {
 
   // common
   "common.retry": "Retry",
+  "detail.favNoteLoading": "Loading your note…",
+  "detail.favNoteLoadFailed": "Your note could not be loaded, so it cannot be edited yet — saving now would replace it with an empty one.",
   "time.justNow": "just now",
   "time.minutes": "{n} min ago",
   "time.hours": "{n} h ago",
@@ -236,6 +238,7 @@ const en = {
   "detail.continue": "Continue at page {n}",
   "detail.startOver": "Read from beginning",
   "reader.page": "Page",
+  "reader.pageOf": "{n} / {total}",
   "reader.toContinuous": "Switch to continuous",
   "reader.toPaged": "Switch to paged",
   "reader.toggleMode": "Toggle reading mode",
@@ -570,6 +573,8 @@ const zh: Record<TKey, string> = {
   "shortcuts.zoomReset": "重置缩放",
 
   "common.retry": "重试",
+  "detail.favNoteLoading": "正在加载备注…",
+  "detail.favNoteLoadFailed": "无法加载备注，暂时不能编辑 — 此时保存会将其清空。",
   "time.justNow": "刚刚",
   "time.minutes": "{n} 分钟前",
   "time.hours": "{n} 小时前",
@@ -737,6 +742,7 @@ const zh: Record<TKey, string> = {
   "detail.continue": "从第 {n} 页继续阅读",
   "detail.startOver": "从头阅读",
   "reader.page": "页码",
+  "reader.pageOf": "第 {n} / {total} 页",
   "reader.toContinuous": "切换到连续滚动",
   "reader.toPaged": "切换到翻页模式",
   "reader.toggleMode": "切换阅读模式",

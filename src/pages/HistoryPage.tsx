@@ -51,7 +51,7 @@ export function HistoryPage() {
 
   if (query.isLoading) {
     return (
-      <div className="mx-auto w-full max-w-4xl p-4 pb-20 md:pb-4">
+      <div className="mx-auto w-full max-w-4xl p-4">
         <div className="mb-3 flex items-center justify-between">
           <div className="h-3.5 w-20 animate-pulse rounded bg-surface-2" />
           <div className="h-7 w-20 animate-pulse rounded-md bg-surface-2" />

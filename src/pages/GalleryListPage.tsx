@@ -41,6 +41,19 @@ interface SavedListState {
 
 const LIST_STATE = "exviewer.liststate";
 
+/**
+ * What each browse source actually honours. Popular is a single fixed feed and
+ * Toplist takes only its timespan and page, so the backend discards keyword,
+ * categories and advanced search for both. Offering those controls there shows
+ * the user a filter that silently does nothing.
+ */
+const MODE_CAPS: Record<ListMode, { query: boolean; jump: boolean }> = {
+  home: { query: true, jump: true },
+  watched: { query: true, jump: true },
+  toplist: { query: false, jump: true },
+  popular: { query: false, jump: false },
+};
+
 /** History entries per destination whose exact state is retained. Older ones
  * fall back to the destination's last state rather than growing without end. */
 const LIST_STATE_LIMIT = 12;
@@ -91,6 +104,7 @@ function saveListState(mode: string, entry: string, state: SavedListState) {
 
 export function GalleryListPage({ mode }: { mode: ListMode }) {
   const t = useT();
+  const caps = MODE_CAPS[mode];
   const location = useLocation();
   const [saved] = useState(() => loadListState(mode, location.key));
   const [params, setParams] = useState<ListParams>(() => ({ ...(saved?.params ?? DEFAULT_LIST_PARAMS), search: new URLSearchParams(location.search).get("search") ?? saved?.searchInput ?? "" }));
@@ -226,8 +240,10 @@ export function GalleryListPage({ mode }: { mode: ListMode }) {
       {mode === "home" && location.pathname === "/" && <QuotaBar />}
 
       {/* toolbar */}
+      {(caps.query || caps.jump) && (
       <div className="flex shrink-0 flex-col gap-2 border-b border-border px-4 pb-3 pt-3">
         <div className="flex flex-wrap items-center gap-2">
+          {caps.query && (<>
           <div className="relative w-full min-w-0 sm:w-auto sm:flex-1">
             <Search
               size={14}
@@ -284,7 +300,8 @@ export function GalleryListPage({ mode }: { mode: ListMode }) {
           >
             <ImageIcon size={14} />
           </Button>
-          {!(firstPage?.pages === 0 && typeof firstPage.nextPage === "string") && <Tooltip content={t("jump.title")} side="bottom">
+          </>)}
+          {caps.jump && !(firstPage?.pages === 0 && typeof firstPage.nextPage === "string") && <Tooltip content={t("jump.title")} side="bottom">
             <span tabIndex={0} className="inline-flex">
               <Button
                 variant="outline"
@@ -296,6 +313,7 @@ export function GalleryListPage({ mode }: { mode: ListMode }) {
               </Button>
             </span>
           </Tooltip>}
+          {caps.query && (
           <Button
             variant={advActive ? "default" : "outline"}
             size="md"
@@ -305,9 +323,11 @@ export function GalleryListPage({ mode }: { mode: ListMode }) {
             <SlidersHorizontal size={14} />
             <span className="hidden sm:inline">{t("list.advanced")}</span>
           </Button>
+          )}
         </div>
 
         {/* quick search chips */}
+        {caps.query && (
         <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5">
           <span className="shrink-0 text-small text-faint-foreground">{t("list.quick")}</span>
           {quickEntries.map((q) => (
@@ -363,7 +383,9 @@ export function GalleryListPage({ mode }: { mode: ListMode }) {
             </button>
           </form>
         </div>
+        )}
       </div>
+      )}
 
       {imageResults ? (
         <>

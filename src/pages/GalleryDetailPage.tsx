@@ -227,6 +227,8 @@ export function GalleryDetailPage() {
           open={favNoteOpen}
           onOpenChange={setFavNoteOpen}
           draft={favNoteDraft}
+          status={favNoteQuery.isPending ? "loading" : favNoteQuery.isError ? "error" : "ready"}
+          onRetry={() => void favNoteQuery.refetch()}
           onDraftChange={setFavNoteDraft}
           saving={favNoteMutation.isPending}
           onSave={() => favNoteMutation.mutate(favNoteDraft.trim())}

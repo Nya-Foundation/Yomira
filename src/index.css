@@ -9,6 +9,9 @@
   --color-overlay: #232329;
   --color-border: #27272a99;
   --color-border-strong: #3f3f4699;
+  /* Resting outline of inputs and switches: these are UI components, so they
+     owe 3:1 against their background, which a divider does not. */
+  --color-control-border: #52525b;
   --color-foreground: #f4f4f5;
   --color-muted-foreground: #a1a1aa;
   --color-faint-foreground: #9696a0;
@@ -54,14 +57,15 @@
   --color-overlay: #e4e4e7;
   --color-border: #e4e4e799;
   --color-border-strong: #d4d4d899;
+  --color-control-border: #8a8a91;
   --color-foreground: #18181b;
   --color-muted-foreground: #52525b;
   --color-faint-foreground: #666670;
-  --color-accent: #e11d48;
+  --color-accent: #be123c;
   --color-accent-foreground: #ffffff;
-  --color-success: #059669;
-  --color-warning: #d97706;
-  --color-danger: #dc2626;
+  --color-success: #047857;
+  --color-warning: #985200;
+  --color-danger: #b91c1c;
   color-scheme: light;
 }
 
@@ -111,7 +115,6 @@ body {
 :focus-visible {
   outline: 2px solid var(--color-accent);
   outline-offset: 2px;
-  border-radius: 2px;
 }
 
 /* These work without a viewport-fit=cover opt-in: the Tauri WebView already
@@ -226,4 +229,52 @@ button:focus-visible { opacity: 1; }
     opacity: 1;
     transform: none;
   }
+}
+
+/* Range input: finger-sized hit area, hairline visual track. The fill comes
+   from --slider-pct so the component stays declarative. */
+.app-slider {
+  appearance: none;
+  width: 100%;
+  height: 24px;
+  background: transparent;
+  cursor: pointer;
+}
+.app-slider::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 9999px;
+  background: linear-gradient(
+    to right,
+    var(--color-accent) var(--slider-pct),
+    var(--color-surface-2) var(--slider-pct)
+  );
+}
+.app-slider::-moz-range-track {
+  height: 4px;
+  border-radius: 9999px;
+  background: linear-gradient(
+    to right,
+    var(--color-accent) var(--slider-pct),
+    var(--color-surface-2) var(--slider-pct)
+  );
+}
+.app-slider::-webkit-slider-thumb {
+  appearance: none;
+  height: 12px;
+  width: 12px;
+  margin-top: -4px;
+  border-radius: 9999px;
+  background: var(--color-accent);
+}
+.app-slider::-moz-range-thumb {
+  height: 12px;
+  width: 12px;
+  border: 0;
+  border-radius: 9999px;
+  background: var(--color-accent);
+}
+@media (pointer: coarse) {
+  .app-slider { height: 44px; }
+  .app-slider::-webkit-slider-thumb { height: 20px; width: 20px; margin-top: -8px; }
+  .app-slider::-moz-range-thumb { height: 20px; width: 20px; }
 }

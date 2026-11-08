@@ -17,16 +17,8 @@ export const Slider = forwardRef<
       min={min}
       max={max}
       value={value}
-      style={{
-        background: `linear-gradient(to right, var(--color-accent) ${pct}%, var(--color-surface-2) ${pct}%)`,
-      }}
-      className={cn(
-        "h-1 w-full cursor-pointer appearance-none rounded-full",
-        "[&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:appearance-none",
-        "[&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-accent",
-        "[&::-moz-range-thumb]:h-3 [&::-moz-range-thumb]:w-3 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:bg-accent",
-        className,
-      )}
+      style={{ "--slider-pct": `${pct}%` } as React.CSSProperties}
+      className={cn("app-slider", className)}
       {...props}
     />
   );

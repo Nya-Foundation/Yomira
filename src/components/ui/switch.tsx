@@ -20,8 +20,7 @@ export const Switch = forwardRef<HTMLButtonElement, SwitchProps>(
       disabled={disabled}
       onClick={() => onCheckedChange(!checked)}
       className={cn(
-        "relative h-5 w-9 shrink-0 rounded-full border transition-colors duration-200",
-        checked ? "border-accent/40 bg-accent/30" : "border-border bg-surface-2",
+        "inline-flex shrink-0 items-center justify-center",
         "disabled:pointer-events-none disabled:opacity-50",
         className,
       )}
@@ -29,10 +28,17 @@ export const Switch = forwardRef<HTMLButtonElement, SwitchProps>(
     >
       <span
         className={cn(
-          "absolute top-1/2 h-3.5 w-3.5 -translate-y-1/2 rounded-full transition-[left,background-color] duration-200",
-          checked ? "left-[18px] bg-accent" : "left-[3px] bg-muted-foreground",
+          "relative block h-5 w-9 rounded-full border transition-colors duration-200",
+          checked ? "border-accent/40 bg-accent/30" : "border-control-border bg-surface-2",
         )}
-      />
+      >
+        <span
+          className={cn(
+            "absolute top-1/2 h-3.5 w-3.5 -translate-y-1/2 rounded-full transition-[left,background-color] duration-200",
+            checked ? "left-[18px] bg-accent" : "left-[3px] bg-muted-foreground",
+          )}
+        />
+      </span>
     </button>
   ),
 );
