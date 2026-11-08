@@ -1,10 +1,9 @@
 //! Direct rusqlite access to the downloads tables.
 //!
 //! The schema is owned by `migrations/0001_init.sql` (columns ported from the
-//! original greenDAO `DownloadsDao` / `DownloadLabelDao`); the SQL is embedded
-//! here so this module stays independent of `crate::db` and can open its own
-//! connection to the same SQLite file (WAL mode makes the two connections
-//! coexist with the application database connection).
+//! original greenDAO `DownloadsDao` / `DownloadLabelDao`) and embedded from
+//! there, so this module stays independent of `crate::db` while opening its
+//! own connection to the same SQLite file (WAL mode lets the two coexist).
 //!
 //! Only the columns the download engine needs are read/written; the rest
 //! (`posted`, `uploader`, `rating`, `language`, `legacy`, `archive_uri`) stay
@@ -17,40 +16,11 @@ use rusqlite::{params, Connection, OptionalExtension};
 
 use crate::core::error::EhError;
 
-/// DDL for the two tables this module owns the access path of. Must stay
-/// identical to the statements in `migrations/0001_init.sql` (a test asserts
-/// that); `CREATE TABLE IF NOT EXISTS` makes re-applying harmless.
-pub const DOWNLOADS_DDL: &str = "\
-CREATE TABLE IF NOT EXISTS downloads (
-    gid         INTEGER PRIMARY KEY NOT NULL,
-    token       TEXT,
-    title       TEXT,
-    title_jpn   TEXT,
-    thumb       TEXT,
-    category    INTEGER NOT NULL DEFAULT 0,
-    posted      TEXT,
-    uploader    TEXT,
-    rating      REAL NOT NULL DEFAULT -1,
-    language    TEXT,
-    state       INTEGER NOT NULL DEFAULT 0,
-    legacy      INTEGER NOT NULL DEFAULT 0,
-    time        INTEGER NOT NULL DEFAULT 0,
-    label       TEXT,
-    dirname     TEXT,
-    archive_uri TEXT
-);
-
-CREATE TABLE IF NOT EXISTS download_labels (
-    id   INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL DEFAULT '',
-    time INTEGER NOT NULL DEFAULT 0
-);
-
-CREATE TABLE IF NOT EXISTS settings_kv (
-    key   TEXT PRIMARY KEY NOT NULL,
-    value TEXT
-);
-";
+/// The application schema, embedded from the same file `crate::db` applies.
+/// This module keeps its own connection but not its own copy of the DDL;
+/// every statement is `IF NOT EXISTS`, so applying it here is idempotent
+/// whichever connection reaches the file first.
+const SCHEMA_SQL: &str = include_str!("../../migrations/0001_init.sql");
 
 /// One row of the `downloads` table (the subset the engine uses).
 #[derive(Debug, Clone, PartialEq)]
@@ -95,7 +65,7 @@ impl DownloadStore {
     fn init(conn: Connection) -> Result<Self, EhError> {
         conn.pragma_update(None, "journal_mode", "WAL")
             .map_err(db_err)?;
-        conn.execute_batch(DOWNLOADS_DDL).map_err(db_err)?;
+        conn.execute_batch(SCHEMA_SQL).map_err(db_err)?;
         Ok(Self {
             conn: Mutex::new(conn),
         })
@@ -285,21 +255,6 @@ mod tests {
             time: gid, // keep ordering deterministic without sleeping
             label: None,
             dirname: Some(format!("{gid}-dir")),
-        }
-    }
-
-    #[test]
-    fn embedded_ddl_matches_the_migration_file() {
-        let path =
-            std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("migrations/0001_init.sql");
-        let migration = std::fs::read_to_string(path).unwrap();
-        let normalize = |s: &str| s.split_whitespace().collect::<Vec<_>>().join(" ");
-        let migration = normalize(&migration);
-        for statement in DOWNLOADS_DDL.split(';').filter(|s| !s.trim().is_empty()) {
-            assert!(
-                migration.contains(&normalize(statement)),
-                "download store DDL drifted from migrations/0001_init.sql:\n{statement}"
-            );
         }
     }
 

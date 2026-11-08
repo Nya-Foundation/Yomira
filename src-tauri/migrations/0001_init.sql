@@ -10,11 +10,10 @@
 --   FilterDao                        -> filter
 -- plus read positions and a generic settings key/value store.
 --
--- This file is the single source of truth: it is embedded by the Rust
--- `db` module (rusqlite) and registered with tauri-plugin-sql so the
--- frontend can query the same tables. A unit test asserts the two stay
--- identical. Times are unix epoch milliseconds unless noted (the original
--- uses System.currentTimeMillis).
+-- This file is the single source of truth, embedded by both `crate::db` and
+-- `crate::download::store` (rusqlite). Only Rust opens the database; the
+-- frontend reaches these tables through typed commands. Times are unix epoch
+-- milliseconds unless noted (the original uses System.currentTimeMillis).
 
 CREATE TABLE IF NOT EXISTS history (
     gid      INTEGER PRIMARY KEY NOT NULL,
