@@ -2,6 +2,7 @@ import { useVirtualizer } from "@tanstack/react-virtual";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useT } from "../../lib/i18n";
 import { useSettings } from "../../lib/settings";
+import { useElementWidth } from "../../lib/use-element-width";
 import { cn, isEditableTarget } from "../../lib/utils";
 import { steppedZoom, useReaderZoom, type ZoomAction } from "../../lib/use-zoom-shortcuts";
 import { Spinner } from "../ui/spinner";
@@ -31,7 +32,7 @@ export function ContinuousReader({
   fit: "page" | "width";
 }) {
   const scrollRef = useRef<HTMLDivElement>(null);
-  const [width, setWidth] = useState(0);
+  const width = useElementWidth(scrollRef);
   const preload = useSettings((s) => s.settings.readerPreloadCount);
   /**
    * A fling passes dozens of pages, and every one the virtualizer mounts would
@@ -100,16 +101,6 @@ export function ContinuousReader({
     pointers.current.delete(e.pointerId);
     if (pointers.current.size < 2) pinchDist.current = null;
   };
-
-  useEffect(() => {
-    const el = scrollRef.current;
-    if (!el) return;
-    const ro = new ResizeObserver((entries) => {
-      setWidth(entries[0]?.contentRect.width ?? 0);
-    });
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, []);
 
   const pageW = Math.max(0, fit === "width" ? width : Math.min(width - 24, 900)) * zoom;
   const pageH = pageW * 1.41 + 24;

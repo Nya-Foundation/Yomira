@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Skeleton } from "../ui/skeleton";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { getPreviewSet } from "../../lib/api";
@@ -51,7 +52,7 @@ export function PreviewPager({
         ))}
         {query.isLoading &&
           Array.from({ length: 20 }, (_, i) => (
-            <div key={i} className="aspect-[3/4] animate-pulse rounded-md bg-surface-2" />
+            <Skeleton key={i} className="aspect-[3/4]" />
           ))}
       </div>
       {groups > 1 && (

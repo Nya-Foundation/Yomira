@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, type ReactNode } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
+import { useElementWidth } from "../../lib/use-element-width";
 import { Inbox } from "lucide-react";
 import type { GalleryInfo } from "../../lib/types";
 import { GalleryCard, GalleryCardSkeleton } from "./gallery-card";
@@ -55,7 +56,7 @@ export function GalleryGrid({
   const gap = density === "compact" ? 12 : 20;
   const baseCol = density === "compact" ? 150 : 180;
   const scrollRef = useRef<HTMLDivElement>(null);
-  const [width, setWidth] = useState(0);
+  const width = useElementWidth(scrollRef, [loading, galleries.length === 0]);
   const restoredKeyRef = useRef<string | null>(null);
   const saveRafRef = useRef<number | null>(null);
   /** Item index at the top of the viewport, and the layout it was read under. */
@@ -63,16 +64,6 @@ export function GalleryGrid({
   const layoutRef = useRef<{ cols: number; rowH: number } | null>(null);
   const onLoadMoreRef = useRef(onLoadMore);
   onLoadMoreRef.current = onLoadMore;
-
-  useEffect(() => {
-    const el = scrollRef.current;
-    if (!el) return;
-    const ro = new ResizeObserver((entries) => {
-      setWidth(entries[0]?.contentRect.width ?? 0);
-    });
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, [loading, galleries.length === 0]);
 
   const storageKey = scrollKey ? `exviewer.scroll.${scrollKey}` : null;
 

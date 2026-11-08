@@ -1,4 +1,5 @@
 import { nextListPage } from "../lib/pagination";
+import { PageToolbar, ScrollRow } from "../components/layout/page-chrome";
 import type { ListPage } from "../lib/types";
 import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowRightToLine, Filter, Image as ImageIcon, Info, Plus, Search, SlidersHorizontal, X } from "lucide-react";
@@ -31,6 +32,7 @@ import {
   type ListParams
 } from "../lib/types";
 import { MODE_CAPS } from "../lib/list-modes";
+import { infiniteGridProps } from "../lib/infinite-grid";
 import { useDebounced } from "../lib/use-debounced";
 import { useToastedMutation } from "../lib/use-toasted-mutation";
 import { cn } from "../lib/utils";
@@ -249,7 +251,7 @@ export function GalleryListPage({ mode }: { mode: ListMode }) {
 
       {/* toolbar */}
       {(caps.query || caps.jump) && (
-      <div className="flex shrink-0 flex-col gap-2 border-b border-border px-4 pb-3 pt-3">
+      <PageToolbar>
         <div className="flex flex-wrap items-center gap-2">
           {caps.query && (<>
           <div className="app-search relative w-full min-w-0 sm:w-auto sm:min-w-72 sm:flex-1">
@@ -351,8 +353,7 @@ export function GalleryListPage({ mode }: { mode: ListMode }) {
 
         {/* quick search chips */}
         {caps.query && (quickEntries.length > 0 || quickAdding) && (
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5">
-          <span className="shrink-0 text-small text-faint-foreground">{t("list.quick")}</span>
+        <ScrollRow label={t("list.quick")}>
           {quickEntries.map((q) => (
             <span
               key={q.id}
@@ -405,9 +406,9 @@ export function GalleryListPage({ mode }: { mode: ListMode }) {
               <Plus size={13} />
             </button>
           </form>
-        </div>
+        </ScrollRow>
         )}
-      </div>
+      </PageToolbar>
       )}
 
       {imageResults ? (
@@ -443,12 +444,7 @@ export function GalleryListPage({ mode }: { mode: ListMode }) {
           className="flex-1"
           scrollKey={scrollKey}
           galleries={galleries}
-          loading={query.isLoading}
-          error={query.error}
-          onRetry={() => void (query.isFetchNextPageError ? query.fetchNextPage() : query.refetch())}
-          hasNextPage={query.hasNextPage ?? false}
-          isFetchingNextPage={query.isFetchingNextPage}
-          onLoadMore={() => void query.fetchNextPage()}
+          {...infiniteGridProps(query)}
           emptyTitle={t("list.emptyTitle")}
           emptyDescription={t("list.emptyDesc")}
           emptyAction={

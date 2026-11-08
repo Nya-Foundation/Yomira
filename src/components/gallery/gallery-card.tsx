@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { Skeleton } from "../ui/skeleton";
 import { CachedImage } from "../ui/cached-image";
 import { RatingHearts } from "./rating-hearts";
 import { categoryLabel, useT } from "../../lib/i18n";
@@ -63,10 +64,10 @@ export function GalleryCardSkeleton() {
       data-density
       className="flex flex-col overflow-hidden rounded-lg border border-border bg-surface"
     >
-      <div className="aspect-[3/4] animate-pulse bg-surface-2" />
+      <Skeleton className="aspect-[3/4] rounded-none" />
       <div className="space-y-1.5 p-[var(--density-pad)]">
-        <div className="h-3.5 w-4/5 animate-pulse rounded bg-surface-2" />
-        <div className="h-3 w-3/5 animate-pulse rounded bg-surface-2" />
+        <Skeleton className="h-3.5 w-4/5 rounded" />
+        <Skeleton className="h-3 w-3/5 rounded" />
       </div>
     </div>
   );

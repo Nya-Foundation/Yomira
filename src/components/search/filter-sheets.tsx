@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { categoryLabel, useT, type TKey } from "../../lib/i18n";
 import {
   CATEGORIES,
+  DEFAULT_LIST_PARAMS,
   type Category,
   type ListParams
 } from "../../lib/types";
@@ -24,6 +25,27 @@ const ADV_SEARCH_TOGGLES: Array<{
   { field: "searchDownvotedTags", label: "list.sheet.searchDownvotedTags", hint: "list.sheet.searchDownvotedTagsHint" },
   { field: "searchExpunged", label: "list.sheet.searchExpunged", hint: "list.sheet.searchExpungedHint" },
 ];
+
+/**
+ * Reset means "back to the defaults", so it reads them from the one place that
+ * defines them rather than restating the values and drifting from it.
+ */
+const ADVANCED_FIELDS = [
+  "minRating",
+  "minPages",
+  "maxPages",
+  "enableUploader",
+  "enableTags",
+  "searchDesc",
+  "searchTorrent",
+  "searchLowPowerTags",
+  "searchDownvotedTags",
+  "searchExpunged",
+] as const satisfies readonly (keyof ListParams)[];
+
+const ADVANCED_DEFAULTS = Object.fromEntries(
+  ADVANCED_FIELDS.map((field) => [field, DEFAULT_LIST_PARAMS[field]]),
+) as Pick<ListParams, (typeof ADVANCED_FIELDS)[number]>;
 
 interface FilterSheetProps {
   open: boolean;
@@ -226,21 +248,7 @@ export function AdvancedSearchSheet({ open, onOpenChange, params, setParams }: F
             <Button
               variant="outline"
               size="sm"
-              onClick={() =>
-                setDraft((p) => ({
-                  ...p,
-                  minRating: null,
-                  minPages: null,
-                  maxPages: null,
-                  enableUploader: true,
-                  enableTags: true,
-                  searchDesc: false,
-                  searchTorrent: false,
-                  searchLowPowerTags: false,
-                  searchDownvotedTags: false,
-                  searchExpunged: false,
-                }))
-              }
+              onClick={() => setDraft((p) => ({ ...p, ...ADVANCED_DEFAULTS }))}
             >
               {t("list.sheet.reset")}
             </Button>

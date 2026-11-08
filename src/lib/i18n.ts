@@ -187,7 +187,6 @@ const en = {
   "detail.torrentDownloaded": "Torrent saved",
   "detail.torrentFailed": "Torrent download failed",
   "detail.archiverTitle": "Archiver download",
-  "detail.archiverLoading": "Loading archiver info...",
   "detail.downloadRes": "Download resampled",
   "detail.downloadOrg": "Download original",
   "detail.archiveSaved": "Archive saved",
@@ -209,7 +208,6 @@ const en = {
   "detail.slot": "Slot {n}",
   "detail.favUpdateFailed": "Could not update favorites",
   "detail.ratingSubmitted": "Rating submitted",
-  "detail.stars": "{n} stars",
   "detail.ratingFailed": "Could not submit rating",
   "detail.addToDownloads": "Add to downloads",
   "detail.addedToDownloads": "Added to downloads",
@@ -232,7 +230,6 @@ const en = {
   "comment.postFailed": "Could not post comment",
 
   // reader
-  "reader.back": "Back to gallery",
   "downloads.readOffline": "Read offline",
   "downloads.resumeOffline": "Resume offline",
   "downloads.readOfflineTitle": "Read offline: {title}",
@@ -273,7 +270,6 @@ const en = {
   "image.fallback": "image",
 
   // favorites page
-  "favorites.tabOnline": "Online",
   "favorites.all": "All",
   "favorites.signInTitle": "Sign in required",
   "favorites.signInDesc": "Your online favorites are tied to your account. Sign in to browse them here.",
@@ -716,7 +712,6 @@ const zh: Record<TKey, string> = {
   "detail.torrentDownloaded": "种子已保存",
   "detail.torrentFailed": "种子下载失败",
   "detail.archiverTitle": "归档下载",
-  "detail.archiverLoading": "正在加载归档信息…",
   "detail.downloadRes": "下载重采样版",
   "detail.downloadOrg": "下载原版",
   "detail.archiveSaved": "归档已保存",
@@ -738,7 +733,6 @@ const zh: Record<TKey, string> = {
   "detail.slot": "分组 {n}",
   "detail.favUpdateFailed": "收藏更新失败",
   "detail.ratingSubmitted": "评分已提交",
-  "detail.stars": "{n} 星",
   "detail.ratingFailed": "评分提交失败",
   "detail.addToDownloads": "加入下载",
   "detail.addedToDownloads": "已加入下载",
@@ -758,8 +752,6 @@ const zh: Record<TKey, string> = {
   "comment.submit": "发表评论",
   "comment.posted": "评论已发表",
   "comment.postFailed": "评论发表失败",
-
-  "reader.back": "返回画廊",
   "downloads.readOffline": "离线阅读",
   "downloads.resumeOffline": "继续离线阅读",
   "downloads.readOfflineTitle": "离线阅读：{title}",
@@ -797,8 +789,6 @@ const zh: Record<TKey, string> = {
   "image.retryTitle": "重试",
   "image.retryAria": "重试加载{name}",
   "image.fallback": "图片",
-
-  "favorites.tabOnline": "在线",
   "favorites.all": "全部",
   "favorites.signInTitle": "需要登录",
   "favorites.signInDesc": "在线收藏与你的账号绑定，登录后即可在此浏览。",

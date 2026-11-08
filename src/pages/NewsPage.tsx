@@ -1,4 +1,5 @@
 import { useInfiniteQuery } from "@tanstack/react-query";
+import { Skeleton } from "../components/ui/skeleton";
 import { ExternalLink, Newspaper } from "lucide-react";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { getNews } from "../lib/api";
@@ -43,10 +44,10 @@ export function NewsPage() {
       <div className="mx-auto max-w-3xl space-y-3 p-6">
         {Array.from({ length: 5 }, (_, i) => (
           <div key={i} className="space-y-2 rounded-lg border border-border bg-surface p-4">
-            <div className="h-4 w-1/3 animate-pulse rounded bg-surface-2" />
-            <div className="h-3 w-24 animate-pulse rounded bg-surface-2" />
-            <div className="h-3 w-full animate-pulse rounded bg-surface-2" />
-            <div className="h-3 w-2/3 animate-pulse rounded bg-surface-2" />
+            <Skeleton className="h-4 w-1/3 rounded" />
+            <Skeleton className="h-3 w-24 rounded" />
+            <Skeleton className="h-3 w-full rounded" />
+            <Skeleton className="h-3 w-2/3 rounded" />
           </div>
         ))}
       </div>

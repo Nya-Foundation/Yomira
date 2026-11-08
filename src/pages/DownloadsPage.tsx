@@ -1,4 +1,6 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { PageToolbar, ScrollRow } from "../components/layout/page-chrome";
+import { Skeleton } from "../components/ui/skeleton";
 import {
   AlertTriangle,
   Download,
@@ -14,12 +16,13 @@ import {
 import { useState } from "react";
 import { NewLabelDialog, RootDialog } from "../components/downloads/download-dialogs";
 import { DownloadRow } from "../components/downloads/download-row";
+import { LabelSelect } from "../components/downloads/label-select";
 import { Button } from "../components/ui/button";
+import { CheckboxField } from "../components/ui/checkbox";
 import { ConfirmDialog, Dialog } from "../components/ui/dialog";
 import { EmptyState } from "../components/ui/empty-state";
 import { ErrorState } from "../components/ui/error-state";
 import { FilterChip } from "../components/ui/filter-chip";
-import { Select } from "../components/ui/select";
 import {
   addDownloadLabel,
   deleteDownloadLabel,
@@ -190,9 +193,8 @@ export function DownloadsPage() {
   return (
     <div className="flex h-full flex-col">
       {/* toolbar */}
-      <div className="flex shrink-0 flex-col gap-2 border-b border-border px-4 pb-3 pt-3">
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5">
-          <span className="shrink-0 text-small text-faint-foreground">{t("downloads.labels")}</span>
+      <PageToolbar>
+        <ScrollRow label={t("downloads.labels")}>
           {labelsQuery.isError ? (
             <InlineQueryError
               description={t("downloads.labelsError")}
@@ -234,19 +236,16 @@ export function DownloadsPage() {
             <ListChecks size={14} strokeWidth={1.75} />
             {t("downloads.selectMode")}
           </Button>
-        </div>
+        </ScrollRow>
         {selectMode && (
-          <div className="flex items-center gap-2 overflow-x-auto pb-0.5">
-            <label className="flex shrink-0 cursor-pointer items-center gap-1.5 text-small text-muted-foreground select-none">
-              <input
-                type="checkbox"
-                checked={allVisibleSelected}
-                onChange={toggleSelectAll}
-                className="h-4 w-4 accent-accent"
-                aria-label={t("downloads.selectAll")}
-              />
-              {t("downloads.selectAll")}
-            </label>
+          <ScrollRow className="gap-2">
+            <CheckboxField
+              className="shrink-0 gap-1.5"
+              checked={allVisibleSelected}
+              onChange={toggleSelectAll}
+              aria-label={t("downloads.selectAll")}
+              label={t("downloads.selectAll")}
+            />
             <span className="shrink-0 text-caption text-faint-foreground tabular-nums">
               {t("downloads.selected", { n: selected.size })}
             </span>
@@ -274,30 +273,14 @@ export function DownloadsPage() {
                   <Pause size={13} strokeWidth={1.75} />
                   {t("downloads.batchPause")}
                 </Button>
-                <Select
-                  value="__placeholder"
-                  onChange={(e) => {
-                    const label = e.target.value === "" ? null : e.target.value;
-                    if (e.target.value === "__placeholder") return;
-                    void runBatch(
-                      (gid) => setDownloadLabel(gid, label),
-                      "downloads.batchLabeled",
-                    );
-                  }}
+                <LabelSelect
+                  labels={labels}
+                  placeholder={t("downloads.assignLabel")}
                   disabled={batchBusy}
-                  aria-label={t("downloads.assignLabel")}
-                  className="w-32"
-                >
-                  <option value="__placeholder" disabled>
-                    {t("downloads.assignLabel")}
-                  </option>
-                  <option value="">{t("downloads.noLabel")}</option>
-                  {labels.map((label) => (
-                    <option key={label} value={label}>
-                      {label}
-                    </option>
-                  ))}
-                </Select>
+                  onChange={(label) =>
+                    void runBatch((gid) => setDownloadLabel(gid, label), "downloads.batchLabeled")
+                  }
+                />
                 <Button
                   variant="ghost"
                   size="icon"
@@ -310,7 +293,7 @@ export function DownloadsPage() {
                 </Button>
               </div>
             )}
-          </div>
+          </ScrollRow>
         )}
         <div className="flex items-center gap-2">
           <FolderDown size={14} strokeWidth={1.75} className="shrink-0 text-faint-foreground" />
@@ -329,17 +312,17 @@ export function DownloadsPage() {
             {t("downloads.changeRoot")}
           </Button>
         </div>
-      </div>
+      </PageToolbar>
 
       {/* list */}
       {downloadsQuery.isLoading ? (
         <div className="min-h-0 flex-1 space-y-3 overflow-hidden p-4">
           {Array.from({ length: 4 }, (_, i) => (
             <div key={i} className="flex items-center gap-3">
-              <div className="h-16 w-12 animate-pulse rounded-md bg-surface-2" />
+              <Skeleton className="h-16 w-12" />
               <div className="flex-1 space-y-2">
-                <div className="h-4 w-2/3 animate-pulse rounded bg-surface-2" />
-                <div className="h-2.5 w-1/2 animate-pulse rounded-full bg-surface-2" />
+                <Skeleton className="h-4 w-2/3 rounded" />
+                <Skeleton className="h-2.5 w-1/2 rounded-full" />
               </div>
             </div>
           ))}
@@ -432,15 +415,12 @@ export function DownloadsPage() {
           <p className="mb-3 text-base leading-6 text-muted-foreground">
             {t("downloads.batchRemoveDesc", { n: selected.size })}
           </p>
-          <label className="mb-4 flex cursor-pointer items-center gap-2 text-small text-muted-foreground select-none">
-            <input
-              type="checkbox"
-              checked={batchDeleteFiles}
-              onChange={(e) => setBatchDeleteFiles(e.target.checked)}
-              className="h-4 w-4 accent-accent"
-            />
-            {t("downloads.deleteFiles")}
-          </label>
+          <CheckboxField
+            className="mb-4"
+            checked={batchDeleteFiles}
+            onChange={(e) => setBatchDeleteFiles(e.target.checked)}
+            label={t("downloads.deleteFiles")}
+          />
           <div className="flex justify-end gap-2">
             <Button variant="outline" size="sm" onClick={() => setBatchRemoveOpen(false)}>
               {t("common.cancel")}
@@ -474,17 +454,14 @@ export function DownloadsPage() {
           <p className="mb-3 text-base leading-6 text-muted-foreground">
             {t("downloads.removeDesc", { title: removeTarget.entry.title })}
           </p>
-          <label className="mb-4 flex cursor-pointer items-center gap-2 text-small text-muted-foreground select-none">
-            <input
-              type="checkbox"
-              checked={removeTarget.deleteFiles}
-              onChange={(e) =>
-                setRemoveTarget((cur) => cur && { ...cur, deleteFiles: e.target.checked })
-              }
-              className="h-4 w-4 accent-accent"
-            />
-            {t("downloads.deleteFiles")}
-          </label>
+          <CheckboxField
+            className="mb-4"
+            checked={removeTarget.deleteFiles}
+            onChange={(e) =>
+              setRemoveTarget((cur) => cur && { ...cur, deleteFiles: e.target.checked })
+            }
+            label={t("downloads.deleteFiles")}
+          />
           <div className="flex justify-end gap-2">
             <Button variant="outline" size="sm" onClick={() => setRemoveTarget(null)}>
               {t("common.cancel")}

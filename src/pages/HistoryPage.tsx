@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Skeleton } from "../components/ui/skeleton";
 import { Link } from "react-router-dom";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { Clock, Trash2 } from "lucide-react";
@@ -55,16 +56,16 @@ export function HistoryPage() {
     return (
       <div className="mx-auto w-full max-w-4xl p-4">
         <div className="mb-3 flex items-center justify-between">
-          <div className="h-3.5 w-20 animate-pulse rounded bg-surface-2" />
-          <div className="h-7 w-20 animate-pulse rounded-md bg-surface-2" />
+          <Skeleton className="h-3.5 w-20 rounded" />
+          <Skeleton className="h-7 w-20" />
         </div>
         <ul className="divide-y divide-border rounded-lg border border-border bg-surface">
           {Array.from({ length: 8 }, (_, i) => (
             <li key={i} className="flex items-center gap-3 p-2 pr-3">
-              <div className="h-14 w-11 shrink-0 animate-pulse rounded-md bg-surface-2" />
+              <Skeleton className="h-14 w-11 shrink-0" />
               <div className="min-w-0 flex-1 space-y-1.5">
-                <div className="h-4 w-2/3 animate-pulse rounded bg-surface-2" />
-                <div className="h-3 w-24 animate-pulse rounded bg-surface-2" />
+                <Skeleton className="h-4 w-2/3 rounded" />
+                <Skeleton className="h-3 w-24 rounded" />
               </div>
             </li>
           ))}
