@@ -18,4 +18,16 @@ test("a lost startup IPC response does not leave a black screen", async ({ page 
   await page.goto("/");
   await expect(page.getByRole("link", { name: "Home" }).first()).toBeVisible({ timeout: 8000 });
   expect(await page.evaluate(() => document.getElementById("root")!.childElementCount)).toBeGreaterThan(0);
+
+  // And it must not merely survive: the route chunk is requested as soon as the
+  // shell renders, so its start time is when the app really began. A gate
+  // waiting on those dropped responses pushed this out by its whole timeout.
+  const routeChunkStart = await page.evaluate(
+    () =>
+      performance
+        .getEntriesByType("resource")
+        .filter((r) => /GalleryListPage/.test(r.name))
+        .map((r) => r.startTime)[0] ?? Infinity,
+  );
+  expect(routeChunkStart).toBeLessThan(1000);
 });

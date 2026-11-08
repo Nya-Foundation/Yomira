@@ -37,27 +37,38 @@ const DEFAULTS: AppSettings = {
 const LS_KEY = "exviewer.settings";
 
 /**
- * The theme, mirrored where it can be read synchronously. `loadPersisted`
- * answers over async IPC in the app, so without this the dark-first palette
- * paints first and a light-theme reader sees it flip on every cold start.
+ * Everything the first paint needs, mirrored where it can be read
+ * synchronously. The persisted copy answers over IPC, and an Android cold
+ * start drops that first response outright — so without this the dark-first
+ * palette at the default scale paints and then jumps, or waits on a reply
+ * that never comes.
  */
-const THEME_KEY = "exviewer.theme";
+const PAINT_KEY = "exviewer.paint";
+const LEGACY_THEME_KEY = "exviewer.theme";
 
-function rememberTheme(theme: Theme) {
+type PaintSettings = Pick<AppSettings, "theme" | "density" | "displayScale">;
+
+function rememberPaint({ theme, density, displayScale }: AppSettings) {
   try {
-    localStorage.setItem(THEME_KEY, theme);
+    localStorage.setItem(PAINT_KEY, JSON.stringify({ theme, density, displayScale }));
   } catch {
-    /* unavailable — the async load still applies the theme, just later */
+    /* unavailable — the async load still applies these, just later */
   }
 }
 
-/** Apply the last known theme. Call before mounting, not from a component. */
-export function applyRememberedTheme() {
+/** Apply the last known presentation. Call before mounting, not from a component. */
+export function applyRememberedPaint() {
   try {
-    const stored = localStorage.getItem(THEME_KEY);
-    if (stored === "light" || stored === "dark") applyTheme(stored);
+    const raw = localStorage.getItem(PAINT_KEY);
+    const paint = raw ? (JSON.parse(raw) as Partial<PaintSettings>) : null;
+    const theme = paint?.theme ?? localStorage.getItem(LEGACY_THEME_KEY);
+    if (theme === "light" || theme === "dark") applyTheme(theme);
+    if (paint?.density === "compact" || paint?.density === "comfortable") applyDensity(paint.density);
+    if (typeof paint?.displayScale === "number" && paint.displayScale > 0) {
+      applyDisplayScale(paint.displayScale);
+    }
   } catch {
-    /* unavailable — fall back to the dark-first default */
+    /* unavailable — fall back to the dark-first defaults */
   }
 }
 
@@ -110,13 +121,13 @@ export const useSettings = create<SettingsState>((set, get) => ({
     const persisted = await loadPersisted();
     const settings = { ...DEFAULTS, ...persisted };
     set({ settings, loaded: true });
-    rememberTheme(settings.theme);
+    rememberPaint(settings);
   },
   update: (patch) => {
     const settings = { ...get().settings, ...patch };
     set({ settings });
     void persist(settings);
-    rememberTheme(settings.theme);
+    rememberPaint(settings);
     applyTheme(settings.theme);
     applyDensity(settings.density);
     applyDisplayScale(settings.displayScale);

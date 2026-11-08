@@ -30,7 +30,7 @@ const DownloadsPage = lazy(() =>
 const NewsPage = lazy(() => import("./pages/NewsPage").then((m) => ({ default: m.NewsPage })));
 import { useSettings, applyTheme, applyDensity, applyDisplayScale } from "./lib/settings";
 import { I18nProvider, useT } from "./lib/i18n";
-import { initImageSource } from "./lib/image-source";
+import { imageBaseReady, initImageSource } from "./lib/image-source";
 import { isEditableTarget } from "./lib/utils";
 import { useZoomShortcuts } from "./lib/use-zoom-shortcuts";
 
@@ -50,33 +50,27 @@ export default function App() {
 
   // Only the setter is needed: the re-render is what lets thumbnails that
   // already mounted pick up the image base URL once it lands.
-  const [, setImageBaseKnown] = useState(false);
-  const [painted, setPainted] = useState(false);
+  const [, setImageBaseLanded] = useState(false);
   useEffect(() => {
-    let alive = true;
-    const load = () =>
-      Promise.allSettled([
-        initSettings(),
-        initImageSource().then(() => {
-          if (alive) setImageBaseKnown(true);
-        }),
-      ]);
-    void load().then(() => {
-      if (alive) setPainted(true);
-    });
-    // A cold start can lose the response to the first IPC call, leaving these
-    // promises pending for good. That held the first paint forever and showed
-    // nothing but the dark canvas. Paint with the defaults instead and ask
-    // again; the saved values arrive through the effect below.
-    const fallback = setTimeout(() => {
-      if (!alive) return;
-      setPainted(true);
-      void load();
-    }, 1200);
-    return () => {
-      alive = false;
-      clearTimeout(fallback);
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    let attempts = 0;
+    /**
+     * An Android cold start drops the response to the first IPC call, and that
+     * promise then never settles — no error to catch, no rejection to retry.
+     * Nothing waits for these any more, because the remembered theme, density
+     * and scale carry the first paint, but the stored values still have to
+     * arrive: ask again until they do.
+     */
+    const pump = () => {
+      const needSettings = !useSettings.getState().loaded;
+      const needImages = !imageBaseReady();
+      if ((!needSettings && !needImages) || attempts++ > 20) return;
+      if (needSettings) void initSettings();
+      if (needImages) void initImageSource().then(() => setImageBaseLanded(true));
+      timer = setTimeout(pump, 250);
     };
+    pump();
+    return () => clearTimeout(timer);
   }, [initSettings]);
 
   useEffect(() => {
@@ -108,11 +102,6 @@ export default function App() {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, []);
-
-  // Hold the first paint until the persisted settings and the image server's
-  // address are known, so the saved scale applies without a flash — but never
-  // longer than the fallback above allows.
-  if (!painted) return null;
 
   return (
     <I18nProvider>

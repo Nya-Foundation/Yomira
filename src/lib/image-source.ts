@@ -19,6 +19,11 @@ export async function initImageSource(): Promise<void> {
   }
 }
 
+/** Whether a remote thumbnail URL can be composed yet. */
+export function imageBaseReady(): boolean {
+  return !isTauri() || base !== null;
+}
+
 /**
  * Compose the served URL for a remote image. The whole target is percent
  * encoded into a single `u` value because the server decodes everything after
