@@ -5,7 +5,9 @@ import {
   ChevronLeft,
   ChevronRight,
   ChevronUp,
-  Rows3
+  Rows3,
+  Scan,
+  StretchHorizontal
 } from "lucide-react";
 import { NavigationControls } from "../layout/navigation-controls";
 import { useT } from "../../lib/i18n";
@@ -20,6 +22,8 @@ export function ReaderToolbar({
   pageCount,
   mode,
   onModeChange,
+  fit,
+  onFitChange,
   onIndexChange,
   title,
   offlineStatus,
@@ -31,6 +35,8 @@ export function ReaderToolbar({
   pageCount: number;
   mode: "paged" | "continuous";
   onModeChange: (m: "paged" | "continuous") => void;
+  fit: "page" | "width";
+  onFitChange: (f: "page" | "width") => void;
   onIndexChange: (i: number) => void;
   title: string;
   offlineStatus?: string;
@@ -76,6 +82,11 @@ export function ReaderToolbar({
         <span role="status" aria-atomic="true" className="shrink-0 text-small text-muted-foreground tabular-nums">
           {t("reader.pageOf", { n: shown + 1, total: pageCount })}
         </span>
+        <Tooltip content={fit === "page" ? t("reader.fitWidth") : t("reader.fitPage")} side="bottom">
+          <Button variant="ghost" size="icon" className="min-h-[44px] min-w-[44px]" aria-pressed={fit === "width"} onClick={() => onFitChange(fit === "page" ? "width" : "page")} aria-label={t("reader.toggleFit")}>
+            {fit === "page" ? <StretchHorizontal size={18} /> : <Scan size={18} />}
+          </Button>
+        </Tooltip>
         <Tooltip content={mode === "paged" ? t("reader.toContinuous") : t("reader.toPaged")} side="bottom">
           <Button variant="ghost" size="icon" className="min-h-[44px] min-w-[44px]" onClick={() => onModeChange(mode === "paged" ? "continuous" : "paged")} aria-label={t("reader.toggleMode")}>
             {mode === "paged" ? <Rows3 size={18} /> : <BookOpen size={18} />}

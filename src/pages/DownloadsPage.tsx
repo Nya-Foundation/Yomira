@@ -242,7 +242,7 @@ export function DownloadsPage() {
                 type="checkbox"
                 checked={allVisibleSelected}
                 onChange={toggleSelectAll}
-                className="h-3.5 w-3.5 accent-accent"
+                className="h-4 w-4 accent-accent"
                 aria-label={t("downloads.selectAll")}
               />
               {t("downloads.selectAll")}
@@ -437,7 +437,7 @@ export function DownloadsPage() {
               type="checkbox"
               checked={batchDeleteFiles}
               onChange={(e) => setBatchDeleteFiles(e.target.checked)}
-              className="h-3.5 w-3.5 accent-accent"
+              className="h-4 w-4 accent-accent"
             />
             {t("downloads.deleteFiles")}
           </label>
@@ -481,7 +481,7 @@ export function DownloadsPage() {
               onChange={(e) =>
                 setRemoveTarget((cur) => cur && { ...cur, deleteFiles: e.target.checked })
               }
-              className="h-3.5 w-3.5 accent-accent"
+              className="h-4 w-4 accent-accent"
             />
             {t("downloads.deleteFiles")}
           </label>

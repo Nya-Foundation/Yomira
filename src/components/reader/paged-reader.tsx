@@ -19,6 +19,7 @@ export function PagedReader({
   pageCount,
   go,
   onToggleControls,
+  fit,
 }: {
   controlsVisible: boolean;
   toolbarH: number;
@@ -28,6 +29,7 @@ export function PagedReader({
   pageCount: number;
   go: (delta: number) => void;
   onToggleControls: () => void;
+  fit: "page" | "width";
 }) {
   const t = useT();
   const queryClient = useQueryClient();
@@ -156,12 +158,20 @@ export function PagedReader({
     }
   };
 
+  const pageScrollRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (pageScrollRef.current) pageScrollRef.current.scrollTop = 0;
+  }, [index]);
+
   const error = pageQuery.error;
 
   return (
     <div
       style={{ paddingTop: controlsVisible ? toolbarH : 0 }}
-      className={cn("relative flex min-h-0 flex-1 items-center justify-center overflow-hidden touch-none bg-background")}
+      className={cn(
+        "relative flex min-h-0 flex-1 items-center justify-center overflow-hidden bg-background",
+        fit === "width" ? "touch-pan-y" : "touch-none",
+      )}
       onWheel={onWheel}
       data-reader-surface
       onPointerDown={onPointerDown}
@@ -184,7 +194,7 @@ export function PagedReader({
         data-reader-edge
         aria-label={t("reader.nextPage")}
         onClick={() => go(1)}
-        disabled={index >= pageCount - 1 || zoom > 1}
+        disabled={zoom > 1}
         className={`absolute inset-y-0 ${direction === "rtl" ? "left-0" : "right-0"} z-20 w-[15%] disabled:pointer-events-none cursor-e-resize disabled:cursor-default`}
       />
 
@@ -213,26 +223,44 @@ export function PagedReader({
         />
       )}
 
-      {pageQuery.data && !error && (
-        <ReaderImage
-          key={`${pageQuery.data.url}:${pageQuery.dataUpdatedAt}`}
-          onRetry={() => void retry()}
-          src={pageQuery.data.url}
-          alt={t("detail.pageAlt", { n: index + 1 })}
-          draggable={false}
-          onDoubleClick={() => {
-            setZoom(1);
-            setPan({ x: 0, y: 0 });
-          }}
-          style={{
-            transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
-          }}
-          className={cn(
-            "max-h-full max-w-full touch-none select-none object-contain transition-transform duration-150",
-            zoom > 1 ? "cursor-grab active:cursor-grabbing" : "cursor-default",
-          )}
-        />
-      )}
+      {pageQuery.data && !error && (() => {
+        const image = (
+          <ReaderImage
+            key={`${pageQuery.data.url}:${pageQuery.dataUpdatedAt}`}
+            onRetry={() => void retry()}
+            src={pageQuery.data.url}
+            alt={t("detail.pageAlt", { n: index + 1 })}
+            draggable={false}
+            onDoubleClick={() => {
+              setZoom(1);
+              setPan({ x: 0, y: 0 });
+            }}
+            style={{
+              transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
+            }}
+            className={cn(
+              "select-none transition-transform duration-150",
+              fit === "width"
+                ? "block w-full max-w-none"
+                : "max-h-full max-w-full touch-none object-contain",
+              zoom > 1 ? "cursor-grab active:cursor-grabbing" : "cursor-default",
+            )}
+          />
+        );
+        if (fit !== "width") return image;
+        // Positioned rather than a flex child so the edge zones and overlays
+        // stay anchored to the viewport while the page itself scrolls.
+        return (
+          <div
+            ref={pageScrollRef}
+            data-page-scroll
+            className="absolute inset-x-0 bottom-0 overflow-y-auto overscroll-contain"
+            style={{ top: controlsVisible ? toolbarH : 0, touchAction: "pan-y" }}
+          >
+            {image}
+          </div>
+        );
+      })()}
 
       {zoom !== 1 && (
         <div className="absolute bottom-4 left-1/2 z-20 flex -translate-x-1/2 items-center gap-1.5 rounded-full border border-border bg-elevated/90 px-2.5 py-1 text-caption text-muted-foreground">

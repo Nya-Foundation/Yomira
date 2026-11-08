@@ -3,7 +3,7 @@ import type { ListPage } from "../lib/types";
 import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowRightToLine, Filter, Image as ImageIcon, Info, Plus, Search, SlidersHorizontal, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import { GalleryGrid } from "../components/gallery/gallery-grid";
 import { GalleryViewToggle } from "../components/gallery/view-toggle";
 import { QuotaBar } from "../components/gallery/quota-bar";
@@ -11,7 +11,7 @@ import { AdvancedSearchSheet, CategorySheet } from "../components/search/filter-
 import { ImageSearchDialog, type ImageSearchResult } from "../components/search/image-search-dialog";
 import { SearchHistoryDropdown } from "../components/search/search-history";
 import { useTagAutocomplete } from "../components/search/tag-autocomplete";
-import { Button } from "../components/ui/button";
+import { Button, GhostLink } from "../components/ui/button";
 import { Dialog } from "../components/ui/dialog";
 import { Input } from "../components/ui/input";
 import { Tooltip } from "../components/ui/tooltip";
@@ -529,13 +529,12 @@ function SignInBanner() {
   return (
     <div className="flex shrink-0 items-center gap-3 border-b border-accent/20 bg-accent/5 px-4 py-2">
       <Info size={15} className="shrink-0 text-accent" />
-      <p className="flex-1 text-small leading-5 text-muted-foreground">
-        {t("list.banner.guest")}{" "}
-        <Link to="/signin" className="font-medium text-accent hover:underline">
-          {t("common.signIn")}
-        </Link>{" "}
-        {t("list.banner.suffix")}
+      <p className="min-w-0 flex-1 text-small leading-5 text-muted-foreground">
+        {t("list.banner.guest")} {t("list.banner.suffix")}
       </p>
+      <GhostLink to="/signin" className="shrink-0">
+        {t("common.signIn")}
+      </GhostLink>
       <button
         aria-label={t("common.dismiss")}
         onClick={() => {

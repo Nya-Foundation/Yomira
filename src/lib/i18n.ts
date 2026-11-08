@@ -157,7 +157,7 @@ const en = {
 
   // guest banner
   "list.banner.guest": "You are browsing as a guest.",
-  "list.banner.suffix": "to access favorites, ratings and your watched feed.",
+  "list.banner.suffix": "Favorites, ratings and your watched feed need an account.",
 
   // tag autocomplete
   "search.autocomplete.unavailable": "Tag database unavailable (offline?)",
@@ -242,6 +242,13 @@ const en = {
   "reader.pageNotSaved": "Saved page unavailable",
   "reader.pageNotSavedDesc": "This page is missing or unreadable. You can keep browsing saved pages. Retry after downloading the page or reconnecting your download folder.",
   "reader.imageUnreadable": "The image could not be read. Retry to load it again.",
+  "reader.toggleFit": "Toggle page fit",
+  "reader.fitWidth": "Fit width",
+  "reader.fitPage": "Fit whole page",
+  "reader.endTitle": "End of gallery",
+  "reader.endDesc": "That was the last of {n} pages.",
+  "reader.endBackToGallery": "Back to gallery",
+  "reader.endReadAgain": "Read again",
   "reader.showControls": "Show reader controls",
   "reader.hideControls": "Hide reader controls",
   "detail.continue": "Continue at page {n}",
@@ -681,7 +688,7 @@ const zh: Record<TKey, string> = {
   "list.sheet.apply": "应用",
 
   "list.banner.guest": "你正在以游客身份浏览。",
-  "list.banner.suffix": "即可使用收藏、评分和订阅推送。",
+  "list.banner.suffix": "收藏、评分和订阅推送需要登录帐号。",
 
   "search.autocomplete.unavailable": "标签数据库不可用（离线？）",
   "search.autocomplete.listLabel": "标签建议",
@@ -762,6 +769,13 @@ const zh: Record<TKey, string> = {
   "reader.pageNotSaved": "已保存的页面不可用",
   "reader.pageNotSavedDesc": "此页缺失或无法读取。您仍可浏览其他已保存页面。下载此页或重新连接下载文件夹后重试。",
   "reader.imageUnreadable": "无法读取图片，请重试。",
+  "reader.toggleFit": "切换适配方式",
+  "reader.fitWidth": "适配宽度",
+  "reader.fitPage": "适配整页",
+  "reader.endTitle": "已到最后一页",
+  "reader.endDesc": "共 {n} 页，已经读完。",
+  "reader.endBackToGallery": "返回画廊",
+  "reader.endReadAgain": "重新阅读",
   "reader.showControls": "显示阅读控制栏",
   "reader.hideControls": "隐藏阅读控制栏",
   "detail.continue": "从第 {n} 页继续阅读",

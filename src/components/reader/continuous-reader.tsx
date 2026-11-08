@@ -2,7 +2,7 @@ import { useVirtualizer } from "@tanstack/react-virtual";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useT } from "../../lib/i18n";
 import { useSettings } from "../../lib/settings";
-import { cn } from "../../lib/utils";
+import { cn, isEditableTarget } from "../../lib/utils";
 import { steppedZoom, useReaderZoom, type ZoomAction } from "../../lib/use-zoom-shortcuts";
 import { Spinner } from "../ui/spinner";
 
@@ -17,6 +17,8 @@ export function ContinuousReader({
   index,
   pageCount,
   onIndexChange,
+  onReachedEnd,
+  fit,
 }: {
   controlsVisible: boolean;
   toolbarH: number;
@@ -25,6 +27,8 @@ export function ContinuousReader({
   index: number;
   pageCount: number;
   onIndexChange: (i: number) => void;
+  onReachedEnd: () => void;
+  fit: "page" | "width";
 }) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(0);
@@ -42,6 +46,60 @@ export function ContinuousReader({
   }, [index]);
   const [zoom, setZoom] = useState(1);
   useReaderZoom(useCallback((action: ZoomAction) => setZoom(value => steppedZoom(value, action, 0.5, 3)), []));
+  const pointers = useRef(new Map<number, { x: number; y: number }>());
+  const pinchDist = useRef<number | null>(null);
+
+  /**
+   * Vertical keys scroll the strip. Without this they reached the page-level
+   * handler, which moves the page index — so Space jumped a whole page in the
+   * one mode where the point is to read across the seam.
+   */
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (document.querySelector("dialog[open]") || e.ctrlKey || e.metaKey || e.altKey) return;
+      if (isEditableTarget(e.target)) return;
+      if (e.key === " " && e.target instanceof Element && e.target.closest("button, a")) return;
+      const el = scrollRef.current;
+      if (!el) return;
+      const screen = el.clientHeight * 0.9;
+      const delta =
+        e.key === "ArrowDown" ? 120
+        : e.key === "ArrowUp" ? -120
+        : e.key === "PageDown" || e.key === " " ? (e.shiftKey ? -screen : screen)
+        : e.key === "PageUp" ? -screen
+        : null;
+      if (delta === null) return;
+      e.preventDefault();
+      el.scrollTop += delta;
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
+  const onPointerDown = (e: React.PointerEvent) => {
+    pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pointers.current.size === 2) {
+      const [a, b] = [...pointers.current.values()];
+      pinchDist.current = Math.hypot(a.x - b.x, a.y - b.y);
+    }
+  };
+
+  const onPointerMove = (e: React.PointerEvent) => {
+    if (!pointers.current.has(e.pointerId)) return;
+    pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pointers.current.size !== 2 || pinchDist.current == null) return;
+    const [a, b] = [...pointers.current.values()];
+    const dist = Math.hypot(a.x - b.x, a.y - b.y);
+    if (pinchDist.current > 0) {
+      setZoom((z) => Math.max(0.5, Math.min(3, Math.round(z * (dist / pinchDist.current!) * 100) / 100)));
+    }
+    pinchDist.current = dist;
+  };
+
+  const onPointerUp = (e: React.PointerEvent) => {
+    pointers.current.delete(e.pointerId);
+    if (pointers.current.size < 2) pinchDist.current = null;
+  };
 
   useEffect(() => {
     const el = scrollRef.current;
@@ -53,7 +111,7 @@ export function ContinuousReader({
     return () => ro.disconnect();
   }, []);
 
-  const pageW = Math.max(0, Math.min(width - 24, 900)) * zoom;
+  const pageW = Math.max(0, fit === "width" ? width : Math.min(width - 24, 900)) * zoom;
   const pageH = pageW * 1.41 + 24;
   const estimate = useMemo(() => () => pageH, [pageH]);
 
@@ -94,7 +152,8 @@ export function ContinuousReader({
       lastIndexRef.current = current;
       onIndexChange(current);
     }
-  }, [pageH, pageCount, onIndexChange, controlsVisible, toolbarH]);
+    if (el.scrollTop + el.clientHeight >= el.scrollHeight - 8) onReachedEnd();
+  }, [pageH, pageCount, onIndexChange, onReachedEnd, controlsVisible, toolbarH]);
 
   // Toggling the chrome changes the top padding, which would otherwise slide
   // the page the reader is looking at by the height of the bar.
@@ -107,7 +166,17 @@ export function ContinuousReader({
   }, [controlsVisible, toolbarH]);
 
   return (
-    <div ref={scrollRef} data-reader-zoom={zoom} onScroll={currentFromScroll} style={{ paddingTop: controlsVisible ? toolbarH : 0 }} className={cn("min-h-0 flex-1 overflow-auto")}>
+    <div
+      ref={scrollRef}
+      data-reader-zoom={zoom}
+      onScroll={currentFromScroll}
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={onPointerUp}
+      onPointerCancel={onPointerUp}
+      style={{ paddingTop: controlsVisible ? toolbarH : 0, touchAction: "pan-y" }}
+      className={cn("min-h-0 flex-1 overflow-auto")}
+    >
       <div
         className="relative mx-auto flex flex-col items-center"
         style={{ height: pageCount * pageH, width: pageW }}

@@ -17,6 +17,8 @@ export interface AppSettings {
   galleryView: "thumbnail" | "detail";
   readerDirection: "ltr" | "rtl";
   readerMode: ReaderMode;
+  /** "page" fits the whole page in view; "width" fills the width and scrolls. */
+  readerFit: "page" | "width";
   readerPreloadCount: number;
 }
 
@@ -28,6 +30,7 @@ const DEFAULTS: AppSettings = {
   galleryView: "thumbnail",
   readerDirection: "ltr",
   readerMode: "paged",
+  readerFit: "page",
   readerPreloadCount: 3,
 };
 
