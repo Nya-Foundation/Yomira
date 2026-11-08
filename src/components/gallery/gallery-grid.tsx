@@ -117,7 +117,9 @@ export function GalleryGrid({
       const el = scrollRef.current;
       const layout = layoutRef.current;
       if (el && layout) {
-        anchorRef.current = Math.floor(el.scrollTop / layout.rowH) * layout.cols;
+        // The first fully visible row, which is the one the reader perceives as
+        // the top: the row above it is already cut off by the viewport edge.
+        anchorRef.current = Math.ceil(el.scrollTop / layout.rowH) * layout.cols;
       }
     });
   }, [saveScroll]);
@@ -161,8 +163,9 @@ export function GalleryGrid({
     if (!prev || (prev.cols === cols && prev.rowH === rowH)) return;
     // Rows carry measured heights, so the virtualizer's own offsets place the
     // row more accurately than multiplying by the estimate.
-    virtualizer.scrollToIndex(Math.floor(anchorRef.current / cols), { align: "start" });
-  }, [cols, rowH, width, galleries.length, virtualizer]);
+    const row = Math.min(rows - 1, Math.floor(anchorRef.current / cols));
+    if (row >= 0) virtualizer.scrollToIndex(row, { align: "start" });
+  }, [cols, rowH, rows, width, galleries.length, virtualizer]);
 
   // load-more sentinel: created once per open/fetching state; the callback is
   // read through a ref so loaded pages don't churn the observer
