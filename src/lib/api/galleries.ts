@@ -68,24 +68,10 @@ export async function getFavorites(
   return invokeOrThrow("get_favorites", args);
 }
 
-/**
- * The favorite note for one gallery. The backend only exposes notes inside
- * paged favorites responses, so in the app this walks pages until it finds
- * the entry (react-query caches the result per gallery).
- */
-export async function getFavoriteNote(gid: number): Promise<string> {
+/** The favorite note for one gallery, read from the site's addfav popup. */
+export async function getFavoriteNote(gid: number, token: string): Promise<string> {
   if (!isTauri()) return (await loadMock()).mock.getFavoriteNote(gid);
-  let page: ListPage = 0;
-  const seen = new Set<ListPage>();
-  while (!seen.has(page)) {
-    seen.add(page);
-    const res = await getFavorites(page, null);
-    const hit = res.items.find((i) => i.gid === gid);
-    if (hit) return hit.favoriteNote ?? "";
-    if (res.nextPage == null) return "";
-    page = res.nextPage;
-  }
-  return "";
+  return invokeOrThrow("get_favorite_note", { gid, token });
 }
 
 export async function modifyFavoriteNote(gid: number, token: string, note: string): Promise<void> {

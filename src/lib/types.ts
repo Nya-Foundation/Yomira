@@ -133,7 +133,6 @@ export type ToplistTimespan = "yesterday" | "month" | "year" | "all";
 
 export interface FavoriteItem extends GalleryInfo {
   favoriteSlot: number;
-  favoriteNote: string;
   favoritedTime: number;
 }
 

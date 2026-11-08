@@ -510,3 +510,45 @@ fn quota_absent_markup_yields_default() {
     assert!(quota.searches_total.is_none());
     assert!(quota.search_reset_seconds.is_none());
 }
+
+// ---------------------------------------------------------------------
+// Addfav popup
+// ---------------------------------------------------------------------
+
+#[test]
+fn favorite_popup_reads_checked_slot_and_note() {
+    let popup = parse_favorite_popup(&fixture("addfav_popup.html"));
+    assert_eq!(popup.slot, Some(3));
+    assert_eq!(popup.note, "Vol. 2 & later — resume at page 40");
+}
+
+#[test]
+fn favorite_popup_without_a_checked_radio_has_no_slot() {
+    let body = fixture("addfav_popup.html").replace(r#" checked="checked""#, "");
+    let popup = parse_favorite_popup(&body);
+    assert_eq!(popup.slot, None);
+    assert!(
+        !popup.note.is_empty(),
+        "the note survives an unfavorited popup"
+    );
+}
+
+#[test]
+fn favorite_popup_ignores_the_favdel_pseudo_slot() {
+    let body = fixture("addfav_popup.html")
+        .replace(
+            r#"value="3" id="fav3" checked="checked""#,
+            r#"value="3" id="fav3""#,
+        )
+        .replace(
+            r#"value="favdel" id="favdel""#,
+            r#"value="favdel" id="favdel" checked="checked""#,
+        );
+    assert_eq!(parse_favorite_popup(&body).slot, None);
+}
+
+#[test]
+fn favorite_popup_tolerates_missing_fields() {
+    let popup = parse_favorite_popup("<html><body><p>nothing here</p></body></html>");
+    assert_eq!(popup, FavoritePopup::default());
+}

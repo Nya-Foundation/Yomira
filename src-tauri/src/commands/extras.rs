@@ -5,10 +5,9 @@
 
 //! Image search, news, quota, favorite notes and search history commands.
 
-use std::sync::{Arc, LazyLock};
+use std::sync::Arc;
 
 use base64::Engine as _;
-use regex::Regex;
 use tauri::State;
 
 use crate::app_state::AppState;
@@ -134,30 +133,21 @@ pub async fn get_quota(state: State<'_, AppState>) -> Result<QuotaDto, EhError> 
 // Favorite note (port of the addfav-popup note flow in EhEngine.addFavorites)
 // ---------------------------------------------------------------------------
 
-/// Popup radio `value` attribute, tolerant of attribute order (same patterns
-/// as the toggle_favorite popup reader in commands/gallery.rs).
-static FAVCAT_RADIO_PATTERN: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r#"(?s)<input[^>]*name="favcat"[^>]*>"#).unwrap());
-static VALUE_PATTERN: LazyLock<Regex> = LazyLock::new(|| Regex::new("value=\"(\\d+)\"").unwrap());
-
-/// GET the addfav popup and read the currently checked category, if any.
-async fn current_favorite_slot(
-    client: &crate::core::EhClient,
+/// The gallery's stored favorite note, read from the addfav popup in one
+/// request. Not-favorited galleries and markup drift both yield an empty
+/// note rather than an error.
+#[tauri::command]
+pub async fn get_favorite_note(
+    state: State<'_, AppState>,
     gid: u64,
-    token: &str,
-) -> Option<i32> {
-    let url = crate::core::client::url::add_favorites_url(client.site(), gid, token);
-    let body = client.get_string(&url, Some(&url)).await.ok()?;
-    for radio in FAVCAT_RADIO_PATTERN.captures_iter(&body) {
-        let tag = &radio[0];
-        if !tag.contains("checked") {
-            continue;
-        }
-        if let Some(m) = VALUE_PATTERN.captures(tag) {
-            return m[1].parse().ok();
-        }
+    token: String,
+) -> Result<String, EhError> {
+    if !state.cookie_store.has_signed_in() {
+        return Err(EhError::NotSignedIn);
     }
-    None
+    Ok(super::gallery::favorite_popup(&state.client, gid, &token)
+        .await?
+        .note)
 }
 
 /// Update the favorite note of an already-favorited gallery: read the
@@ -174,8 +164,10 @@ pub async fn modify_favorite_note(
     if !state.cookie_store.has_signed_in() {
         return Err(EhError::NotSignedIn);
     }
-    let slot = current_favorite_slot(&state.client, gid, &token)
+    let slot = super::gallery::favorite_popup(&state.client, gid, &token)
         .await
+        .ok()
+        .and_then(|popup| popup.slot)
         .ok_or_else(|| EhError::Eh("gallery is not favorited".to_string()))?;
     let url = crate::core::client::url::add_favorites_url(state.client.site(), gid, &token);
     let slot_string = slot.to_string();

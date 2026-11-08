@@ -190,7 +190,6 @@ pub struct FavoriteItemDto {
     #[serde(flatten)]
     pub info: GalleryInfoDto,
     pub favorite_slot: i32,
-    pub favorite_note: String,
     /// Epoch seconds; the favorites page does not expose a time, so 0.
     pub favorited_time: i64,
 }
@@ -206,7 +205,6 @@ pub fn favorite_item_dto(info: &GalleryInfo) -> FavoriteItemDto {
         } else {
             -1
         },
-        favorite_note: String::new(),
         favorited_time: 0,
         info: dto,
     }

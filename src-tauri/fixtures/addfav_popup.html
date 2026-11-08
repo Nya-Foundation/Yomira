@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head><title>Add to Favorites</title></head>
+<body>
+<div id="favoritesform">
+  <form method="post" action="/gallerypopups.php?gid=1234567&amp;t=0123456789&amp;act=addfav">
+    <div class="nosel">
+      <input type="radio" name="favcat" value="0" id="fav0" />
+      <div class="i" title="Favorites 0">Favorites 0</div>
+      <input type="radio" name="favcat" value="1" id="fav1" />
+      <div class="i" title="Reading">Reading</div>
+      <input type="radio" name="favcat" value="3" id="fav3" checked="checked" />
+      <div class="i" title="Later">Later</div>
+      <input type="radio" name="favcat" value="favdel" id="favdel" />
+      <div class="i">Remove from Favorites</div>
+    </div>
+    <div>
+      <textarea name="favnote" rows="5" cols="40">Vol. 2 &amp; later &mdash; resume at page 40</textarea>
+    </div>
+    <input type="hidden" name="update" value="1" />
+    <input type="submit" value="Apply Changes" />
+  </form>
+</div>
+</body>
+</html>

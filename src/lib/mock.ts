@@ -602,7 +602,6 @@ export const mock = {
     const items = entries.map((e) => ({
       ...getGallery(e.gid),
       favoriteSlot: e.slot,
-      favoriteNote: e.note,
       favoritedTime: e.time,
     }));
     items.sort((a, b) => (sort === "p" ? b.posted - a.posted : b.favoritedTime - a.favoritedTime));

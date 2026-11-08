@@ -70,6 +70,7 @@ pub fn all() -> impl Fn(tauri::ipc::Invoke) -> bool + Send + Sync + 'static {
         extras::image_lookup,
         extras::get_news,
         extras::get_quota,
+        extras::get_favorite_note,
         extras::modify_favorite_note,
         extras::search_history,
         extras::record_search,
