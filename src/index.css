@@ -114,6 +114,10 @@ body {
   border-radius: 2px;
 }
 
+/* These work without a viewport-fit=cover opt-in: the Tauri WebView already
+   fills the screen, and Chromium on Android reports the window insets as the
+   safe area regardless. Measured on Android 13 / WebView 151, where env()
+   reports 27px top and 16px bottom either way. */
 .app-shell { padding-top: env(safe-area-inset-top); }
 .app-main { padding-bottom: calc(4rem + env(safe-area-inset-bottom)); }
 .mobile-nav { padding-bottom: env(safe-area-inset-bottom); }
