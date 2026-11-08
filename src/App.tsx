@@ -48,10 +48,35 @@ export default function App() {
   const density = useSettings((s) => s.settings.density);
   const displayScale = useSettings((s) => s.settings.displayScale);
 
-  const [imagesReady, setImagesReady] = useState(false);
+  // Only the setter is needed: the re-render is what lets thumbnails that
+  // already mounted pick up the image base URL once it lands.
+  const [, setImageBaseKnown] = useState(false);
+  const [painted, setPainted] = useState(false);
   useEffect(() => {
-    void initSettings();
-    void initImageSource().finally(() => setImagesReady(true));
+    let alive = true;
+    const load = () =>
+      Promise.allSettled([
+        initSettings(),
+        initImageSource().then(() => {
+          if (alive) setImageBaseKnown(true);
+        }),
+      ]);
+    void load().then(() => {
+      if (alive) setPainted(true);
+    });
+    // A cold start can lose the response to the first IPC call, leaving these
+    // promises pending for good. That held the first paint forever and showed
+    // nothing but the dark canvas. Paint with the defaults instead and ask
+    // again; the saved values arrive through the effect below.
+    const fallback = setTimeout(() => {
+      if (!alive) return;
+      setPainted(true);
+      void load();
+    }, 1200);
+    return () => {
+      alive = false;
+      clearTimeout(fallback);
+    };
   }, [initSettings]);
 
   useEffect(() => {
@@ -84,10 +109,10 @@ export default function App() {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  // Hold first paint until persisted settings (theme, density, display
-  // scale) and the image server's address are known, so the saved scale
-  // applies without a flash and thumbnails resolve on the first render.
-  if (!loaded || !imagesReady) return null;
+  // Hold the first paint until the persisted settings and the image server's
+  // address are known, so the saved scale applies without a flash — but never
+  // longer than the fallback above allows.
+  if (!painted) return null;
 
   return (
     <I18nProvider>
