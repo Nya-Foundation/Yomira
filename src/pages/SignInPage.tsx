@@ -8,20 +8,12 @@ import { Button } from "../components/ui/button";
 import { Textarea } from "../components/ui/textarea";
 import { Separator } from "../components/ui/separator";
 
-// Session cookies placed in the project-root .env (ipb_member_id, ipb_pass_hash,
-// igneous) are exposed by Vite via envPrefix and pre-fill the form. Nothing is
-// sent until the user clicks "Sign in".
-const env = import.meta.env as Record<string, string | undefined>;
-const envCookies = import.meta.env.DEV ? [env.IPB_MEMBER_ID && `ipb_member_id=${env.IPB_MEMBER_ID}`,
-  env.IPB_PASS_HASH && `ipb_pass_hash=${env.IPB_PASS_HASH}`,
-  env.IGNEOUS && `igneous=${env.IGNEOUS}`].filter(Boolean).join("; ") : "";
-
 export function SignInPage() {
   const t = useT();
   const navigate = useNavigate();
   const [webviewLoading, setWebviewLoading] = useState(false);
   const [cookieLoading, setCookieLoading] = useState(false);
-  const [cookies, setCookies] = useState(envCookies);
+  const [cookies, setCookies] = useState("");
   const [cookieError, setCookieError] = useState<string | null>(null);
 
   const done = () => {
@@ -103,13 +95,6 @@ export function SignInPage() {
         {cookieError && (
           <p role="alert" className="mt-2 rounded-md border border-danger/25 bg-danger/5 px-3 py-2 text-caption leading-5 text-danger">
             {cookieError}
-          </p>
-        )}
-        {envCookies && !cookieError && (
-          <p className="mt-2 text-caption text-faint-foreground">
-            {t("signin.preFilledA")}
-            <code className="font-mono">.env</code>
-            {t("signin.preFilledB")}
           </p>
         )}
 

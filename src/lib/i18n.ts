@@ -479,8 +479,6 @@ const en = {
   "signin.submit": "Sign in",
   "signin.cookieError":
     'Malformed cookie: "ipb_pass_hash" must be followed by "=" (equals sign), not "-". It should read ipb_pass_hash=<value>.',
-  "signin.preFilledA": "Pre-filled from your local ",
-  "signin.preFilledB": ". Press Sign in to use it.",
   "signin.helpA":
     "Sign in to the site in your browser, then copy the cookies for the site domain from your browser's developer tools (Application - Cookies). Required: ",
   "signin.helpAnd": " and ",
@@ -957,8 +955,6 @@ const zh: Record<TKey, string> = {
   "signin.submit": "登录",
   "signin.cookieError":
     "格式错误的 Cookie：\"ipb_pass_hash\" 后面必须跟 \"=\"（等号），而不是 \"-\"。应写作 ipb_pass_hash=<值>。",
-  "signin.preFilledA": "已从本地 ",
-  "signin.preFilledB": " 预填。点击登录即可使用。",
   "signin.helpA": "在浏览器中登录站点，然后从浏览器开发者工具（Application - Cookies）中复制该站点的 Cookie。必需：",
   "signin.helpAnd": " 和 ",
   "signin.helpEnd": "。",
