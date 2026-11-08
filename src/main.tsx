@@ -4,6 +4,7 @@ import { BrowserRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import App from "./App";
 import { AppNavigationProvider } from "./lib/app-navigation";
+import { applyRememberedTheme } from "./lib/settings";
 import "./index.css";
 
 const queryClient = new QueryClient({
@@ -15,6 +16,9 @@ const queryClient = new QueryClient({
     },
   },
 });
+
+// Before the first paint: the persisted theme only arrives later, over IPC.
+applyRememberedTheme();
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>

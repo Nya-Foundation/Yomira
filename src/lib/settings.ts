@@ -33,6 +33,31 @@ const DEFAULTS: AppSettings = {
 
 const LS_KEY = "exviewer.settings";
 
+/**
+ * The theme, mirrored where it can be read synchronously. `loadPersisted`
+ * answers over async IPC in the app, so without this the dark-first palette
+ * paints first and a light-theme reader sees it flip on every cold start.
+ */
+const THEME_KEY = "exviewer.theme";
+
+function rememberTheme(theme: Theme) {
+  try {
+    localStorage.setItem(THEME_KEY, theme);
+  } catch {
+    /* unavailable — the async load still applies the theme, just later */
+  }
+}
+
+/** Apply the last known theme. Call before mounting, not from a component. */
+export function applyRememberedTheme() {
+  try {
+    const stored = localStorage.getItem(THEME_KEY);
+    if (stored === "light" || stored === "dark") applyTheme(stored);
+  } catch {
+    /* unavailable — fall back to the dark-first default */
+  }
+}
+
 let store: Store | null = null;
 
 async function loadPersisted(): Promise<Partial<AppSettings>> {
@@ -80,12 +105,15 @@ export const useSettings = create<SettingsState>((set, get) => ({
   init: async () => {
     if (get().loaded) return;
     const persisted = await loadPersisted();
-    set({ settings: { ...DEFAULTS, ...persisted }, loaded: true });
+    const settings = { ...DEFAULTS, ...persisted };
+    set({ settings, loaded: true });
+    rememberTheme(settings.theme);
   },
   update: (patch) => {
     const settings = { ...get().settings, ...patch };
     set({ settings });
     void persist(settings);
+    rememberTheme(settings.theme);
     applyTheme(settings.theme);
     applyDensity(settings.density);
     applyDisplayScale(settings.displayScale);
