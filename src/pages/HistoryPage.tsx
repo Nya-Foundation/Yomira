@@ -7,7 +7,7 @@ import { CachedImage } from "../components/ui/cached-image";
 import { EmptyState } from "../components/ui/empty-state";
 import { ErrorState } from "../components/ui/error-state";
 import { ConfirmDialog } from "../components/ui/dialog";
-import { Button } from "../components/ui/button";
+import { Button, GhostLink } from "../components/ui/button";
 import { useToastedMutation } from "../lib/use-toasted-mutation";
 import { useT } from "../lib/i18n";
 
@@ -91,12 +91,7 @@ export function HistoryPage() {
           title={t("history.empty")}
           description={t("history.emptyDesc")}
           action={
-            <Link
-              to="/"
-              className="inline-flex h-8 items-center rounded-md border border-border px-3 text-small text-muted-foreground transition-colors hover:bg-surface-2 hover:text-foreground"
-            >
-              {t("history.start")}
-            </Link>
+            <GhostLink to="/">{t("history.start")}</GhostLink>
           }
           className="w-full max-w-md"
         />

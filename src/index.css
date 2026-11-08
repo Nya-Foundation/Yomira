@@ -156,7 +156,15 @@ body {
 /* Keyboard and touch users need the same discoverable secondary actions. */
 button:focus-visible { opacity: 1; }
 @media (pointer: coarse) {
-  button, a[aria-label], select, input:not([type="checkbox"]):not([type="range"]) { min-height: 44px; }
+  button, a[aria-label], .app-control, select, input:not([type="checkbox"]):not([type="range"]) {
+    min-height: 44px;
+  }
+  /* Width for anything that is actually a button, shared component or not.
+     Navigation rails are built from links and size themselves to the rail, so
+     a floor wide enough for a fingertip would overflow them. */
+  button, .app-control {
+    min-width: 44px;
+  }
   button.opacity-0 { opacity: 1; }
 }
 

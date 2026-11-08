@@ -33,6 +33,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       ref={ref}
       type={type}
       className={cn(
+        "app-control",
         "inline-flex items-center justify-center gap-1.5 font-medium whitespace-nowrap",
         "transition-[background-color,color,border-color] duration-150 select-none",
         "disabled:pointer-events-none disabled:opacity-50",
@@ -48,5 +49,5 @@ Button.displayName = "Button";
 
 /** Router Link wearing the ghost-link Button look (navigation actions in empty/error states). */
 export function GhostLink({ className, ...props }: LinkProps) {
-  return <Link className={cn(variants["ghost-link"], className)} {...props} />;
+  return <Link className={cn("app-control", variants["ghost-link"], className)} {...props} />;
 }
