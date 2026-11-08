@@ -88,7 +88,7 @@ impl PageSource for EhPageSource {
         gtoken: &'a str,
         index: i32,
     ) -> Pin<Box<dyn Future<Output = Result<ResolvedPage, EhError>> + Send + 'a>> {
-        Box::pin(async move {
+        Box::pin(crate::core::as_background(async move {
             // The page endpoint needs the page token (ptoken). The original
             // resolved it through the gtoken API, which now answers "Invalid
             // page." to everything, so ptokens are harvested from the gallery
@@ -116,7 +116,7 @@ impl PageSource for EhPageSource {
                 referer: eh_url::page_url(site, gid, index, &ptoken),
                 ptoken: Some(ptoken),
             })
-        })
+        }))
     }
 
     fn fetch_image<'a>(
@@ -124,7 +124,7 @@ impl PageSource for EhPageSource {
         image_url: &'a str,
         referer: &'a str,
     ) -> Pin<Box<dyn Future<Output = Result<FetchedImage, EhError>> + Send + 'a>> {
-        Box::pin(async move {
+        Box::pin(crate::core::as_background(async move {
             let (bytes, content_type) = self
                 .client
                 .get_image_bytes(image_url, Some(referer))
@@ -133,7 +133,7 @@ impl PageSource for EhPageSource {
                 bytes,
                 extension: extension_from_content_type(&content_type),
             })
-        })
+        }))
     }
 }
 

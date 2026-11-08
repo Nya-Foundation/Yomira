@@ -106,3 +106,85 @@ fn image_resolution_cookie_preserves_auth_and_other_preferences() {
     jar.clear().unwrap();
     assert_eq!(configured.cookies(&url).unwrap(), "uconfig=xr_1600");
 }
+
+// ---------------------------------------------------------------------
+// Request pacing
+// ---------------------------------------------------------------------
+
+fn idle_slots(now: Instant) -> Slots {
+    let idle = now.checked_sub(SITE_REQUEST_INTERVAL).unwrap();
+    Slots {
+        next: idle,
+        next_background: idle,
+    }
+}
+
+#[test]
+fn interactive_requests_pace_at_the_site_interval() {
+    let now = Instant::now();
+    let mut slots = idle_slots(now);
+
+    // The first goes out immediately; each next one waits a full interval.
+    assert_eq!(reserve(&mut slots, now, false), Duration::ZERO);
+    assert_eq!(reserve(&mut slots, now, false), SITE_REQUEST_INTERVAL);
+    assert_eq!(reserve(&mut slots, now, false), SITE_REQUEST_INTERVAL * 2);
+}
+
+#[test]
+fn background_requests_pace_at_the_site_interval_when_nobody_is_waiting() {
+    let now = Instant::now();
+    let mut slots = idle_slots(now);
+
+    assert_eq!(reserve(&mut slots, now, true), Duration::ZERO);
+    assert_eq!(reserve(&mut slots, now, true), SITE_REQUEST_INTERVAL);
+}
+
+#[test]
+fn background_work_stands_aside_after_an_interactive_request() {
+    let now = Instant::now();
+    let mut slots = idle_slots(now);
+
+    // A download queued behind browsing waits out the yield, not just the
+    // request interval, so a burst of user actions gets consecutive slots.
+    assert_eq!(reserve(&mut slots, now, false), Duration::ZERO);
+    assert_eq!(reserve(&mut slots, now, true), BACKGROUND_YIELD);
+}
+
+#[test]
+fn an_interactive_request_waits_at_most_one_interval_behind_the_queue() {
+    let now = Instant::now();
+    let mut slots = idle_slots(now);
+
+    // Three workers reserve slots, then someone clicks. The reservations
+    // already made are honored, but the yield keeps the rest of the queue
+    // behind the click.
+    for _ in 0..3 {
+        reserve(&mut slots, now, true);
+    }
+    let interactive = reserve(&mut slots, now, false);
+    assert!(
+        interactive <= SITE_REQUEST_INTERVAL * 3,
+        "waited {interactive:?}"
+    );
+    assert_eq!(
+        reserve(&mut slots, now, true),
+        interactive + BACKGROUND_YIELD
+    );
+}
+
+#[test]
+fn continuous_browsing_cannot_starve_the_download_queue() {
+    let mut now = Instant::now();
+    let mut slots = idle_slots(now);
+
+    // Someone browsing steadily for a while never pushes the queue further
+    // than the ceiling, so downloads keep making progress.
+    for _ in 0..40 {
+        reserve(&mut slots, now, false);
+        now += SITE_REQUEST_INTERVAL;
+    }
+    assert!(
+        reserve(&mut slots, now, true) <= BACKGROUND_MAX_DELAY,
+        "download deferred past the ceiling"
+    );
+}

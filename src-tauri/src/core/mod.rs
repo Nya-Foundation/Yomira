@@ -15,8 +15,8 @@ pub mod models;
 pub mod parser;
 
 pub use client::{
-    built_in_hosts, ClientConfig, DnsResolver, DohResolver, EhClient, EhCookieStore, EhResolver,
-    HostsResolver, InMemoryCookieStore, Site, SystemResolver, DEFAULT_DOH_ENDPOINT,
+    as_background, built_in_hosts, ClientConfig, DnsResolver, DohResolver, EhClient, EhCookieStore,
+    EhResolver, HostsResolver, InMemoryCookieStore, Site, SystemResolver, DEFAULT_DOH_ENDPOINT,
     DEFAULT_USER_AGENT,
 };
 pub use error::EhError;
