@@ -2,6 +2,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { Search, Command } from "lucide-react";
 import { cn } from "../../lib/utils";
 import { useT, type TFunction, type TKey } from "../../lib/i18n";
+import { hasOwnSearch } from "../../lib/list-modes";
 import { NavigationControls } from "./navigation-controls";
 
 export interface RouteMeta {
@@ -30,21 +31,21 @@ function routeLabel(pathname: string, t: TFunction): string {
   return t("nav.app");
 }
 
-const LIST_ROUTES = ["/", "/popular", "/watched", "/toplist"];
-
 export function Header({ onOpenPalette }: { onOpenPalette: () => void }) {
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const t = useT();
   const title = routeLabel(pathname, t);
-  const isList = LIST_ROUTES.some((r) => pathname === r);
+  // Suppress the header search only where the page offers its own: Popular
+  // and Toplist render no search field, so they need this one.
+  const ownsSearch = hasOwnSearch(pathname);
 
   return (
     <header className="flex h-16 shrink-0 items-center gap-1.5 border-b border-border bg-background px-2 sm:gap-3 sm:px-5">
       <NavigationControls />
       <h1 className="min-w-0 truncate text-title font-semibold tracking-tight">{title}</h1>
       <div className="flex-1" />
-      {!isList && (
+      {!ownsSearch && (
         <button
           onClick={() => navigate("/", { state: { focusSearch: true } })}
           aria-label={t("list.searchAria")}

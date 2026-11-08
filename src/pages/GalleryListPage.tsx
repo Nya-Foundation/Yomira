@@ -29,6 +29,7 @@ import {
   type GalleryInfo,
   type ListParams
 } from "../lib/types";
+import { MODE_CAPS } from "../lib/list-modes";
 import { useDebounced } from "../lib/use-debounced";
 import { useToastedMutation } from "../lib/use-toasted-mutation";
 import { cn } from "../lib/utils";
@@ -41,18 +42,6 @@ interface SavedListState {
 
 const LIST_STATE = "exviewer.liststate";
 
-/**
- * What each browse source actually honours. Popular is a single fixed feed and
- * Toplist takes only its timespan and page, so the backend discards keyword,
- * categories and advanced search for both. Offering those controls there shows
- * the user a filter that silently does nothing.
- */
-const MODE_CAPS: Record<ListMode, { query: boolean; jump: boolean }> = {
-  home: { query: true, jump: true },
-  watched: { query: true, jump: true },
-  toplist: { query: false, jump: true },
-  popular: { query: false, jump: false },
-};
 
 /** History entries per destination whose exact state is retained. Older ones
  * fall back to the destination's last state rather than growing without end. */

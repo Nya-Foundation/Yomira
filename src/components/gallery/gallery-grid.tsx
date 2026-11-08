@@ -110,9 +110,17 @@ export function GalleryGrid({
     });
   }, [saveScroll]);
 
-  const minCol = (width < 480 ? 140 : baseCol) * scale;
+  // The card's text block already grows with the scale because it is sized in
+  // rem. Multiplying the cover minimum by it as well double-counts, and at 2x
+  // left a single cover taller than the viewport with no card fully visible.
+  const coverScale = Math.min(scale, 1.25);
+  const minCol = (width < 480 ? 140 : baseCol) * coverScale;
   const cols = view === "detail" ? 1 : Math.max(1, Math.floor((width - PAD_X * 2 + gap) / (minCol + gap)));
-  const colW = width > 0 ? (width - PAD_X * 2 - gap * (cols - 1)) / cols : minCol;
+  // Whatever the column count leaves over would otherwise inflate every card,
+  // worst at the low column counts tablets and high scales produce. Cap the
+  // overshoot and let the remainder sit in the outer margin instead.
+  const fillW = width > 0 ? (width - PAD_X * 2 - gap * (cols - 1)) / cols : minCol;
+  const colW = view === "detail" ? fillW : Math.min(fillW, minCol * 1.25);
   const rowH = view === "detail" ? 170 * scale + gap : colW * (4 / 3) + 130 * scale + gap;
   const rows = Math.ceil(galleries.length / cols);
 
@@ -179,7 +187,7 @@ export function GalleryGrid({
           </Button>
         ))}
       </div>
-    <div ref={scrollRef} onScroll={onScroll} className="min-h-0 flex-1 overflow-y-auto">
+    <div ref={scrollRef} onScroll={onScroll} data-grid-scroll className="min-h-0 flex-1 overflow-y-auto">
       {width > 0 && (
         <div
           className="relative mt-4"
@@ -198,7 +206,8 @@ export function GalleryGrid({
                   transform: `translateY(${row.start}px)`,
                   width,
                   padding: `0 ${PAD_X}px ${gap}px`,
-                  gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
+                  gridTemplateColumns: `repeat(${cols}, ${colW}px)`,
+                  justifyContent: "center",
                   gap,
                 }}
               >

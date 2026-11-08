@@ -11,7 +11,7 @@
   --color-border-strong: #3f3f4699;
   /* Resting outline of inputs and switches: these are UI components, so they
      owe 3:1 against their background, which a divider does not. */
-  --color-control-border: #52525b;
+  --color-control-border: #71717a;
   --color-foreground: #f4f4f5;
   --color-muted-foreground: #a1a1aa;
   --color-faint-foreground: #9696a0;
