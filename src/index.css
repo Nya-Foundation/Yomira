@@ -67,12 +67,27 @@
 
 html {
   font-size: 14px;
+  /* Android WebView inflates text on its own, which would fight the
+     rem-based display scale. */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
 body {
   @apply bg-background text-foreground font-sans antialiased;
   line-height: 1.55;
   overflow: hidden;
+  /* No grey box on every tap, and no document-level rubber banding: the
+     shell owns the viewport and its regions scroll themselves. */
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior: none;
+}
+
+/* A list reaching its end should not hand the gesture to whatever is behind
+   it. Targets the utilities the app's scroll regions are built from. */
+.overflow-y-auto,
+.overflow-auto {
+  overscroll-behavior: contain;
 }
 
 /* thin scrollbars */
