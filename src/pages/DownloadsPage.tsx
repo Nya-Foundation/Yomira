@@ -37,7 +37,11 @@ import { useDownloadEvents } from "../lib/use-download-events";
 import { useToastedMutation } from "../lib/use-toasted-mutation";
 import { toast } from "../stores/toast";
 
-const ALL_DOWNLOAD_KEYS = [["downloads"], ["download-labels"], ["download-root"]];
+const QUEUE = [["downloads"]];
+/** Deleting a label also unlabels the entries that carried it. */
+const QUEUE_AND_LABELS = [["downloads"], ["download-labels"]];
+/** A new root changes which saved files the queue can find. */
+const QUEUE_AND_ROOT = [["downloads"], ["download-root"]];
 
 interface RemoveTarget {
   entry: DownloadEntry;
@@ -78,45 +82,45 @@ export function DownloadsPage() {
     mutationFn: startDownload,
     successMessage: t("downloads.started"),
     errorMessage: t("downloads.actionFailed"),
-    invalidateKeys: ALL_DOWNLOAD_KEYS,
+    invalidateKeys: QUEUE,
   });
   const pauseMutation = useToastedMutation({
     mutationFn: pauseDownload,
     successMessage: t("downloads.paused"),
     errorMessage: t("downloads.actionFailed"),
-    invalidateKeys: ALL_DOWNLOAD_KEYS,
+    invalidateKeys: QUEUE,
   });
   const removeMutation = useToastedMutation({
     mutationFn: ({ entry, deleteFiles }: RemoveTarget) => removeDownload(entry.gid, deleteFiles),
     successMessage: t("downloads.removed"),
     errorMessage: t("downloads.actionFailed"),
-    invalidateKeys: ALL_DOWNLOAD_KEYS,
+    invalidateKeys: QUEUE,
     onSuccess: () => setRemoveTarget(null),
   });
   const assignLabelMutation = useToastedMutation({
     mutationFn: ({ gid, label }: { gid: number; label: string | null }) => setDownloadLabel(gid, label),
     successMessage: t("downloads.labelAssigned"),
     errorMessage: t("downloads.actionFailed"),
-    invalidateKeys: ALL_DOWNLOAD_KEYS,
+    invalidateKeys: QUEUE,
   });
   const newLabelMutation = useToastedMutation({
     mutationFn: addDownloadLabel,
     successMessage: t("downloads.labelCreated"),
     errorMessage: t("downloads.actionFailed"),
-    invalidateKeys: ALL_DOWNLOAD_KEYS,
+    invalidateKeys: [["download-labels"]],
     onSuccess: () => setNewLabelOpen(false),
   });
   const deleteLabelMutation = useToastedMutation({
     mutationFn: deleteDownloadLabel,
     successMessage: t("downloads.labelDeleted"),
     errorMessage: t("downloads.actionFailed"),
-    invalidateKeys: ALL_DOWNLOAD_KEYS,
+    invalidateKeys: QUEUE_AND_LABELS,
   });
   const setRootMutation = useToastedMutation({
     mutationFn: setDownloadRoot,
     successMessage: t("downloads.rootChanged"),
     errorMessage: t("downloads.actionFailed"),
-    invalidateKeys: ALL_DOWNLOAD_KEYS,
+    invalidateKeys: QUEUE_AND_ROOT,
     onSuccess: () => setRootDialogOpen(false),
   });
 
@@ -168,7 +172,7 @@ export function DownloadsPage() {
     } else {
       toast.success(t(successKey, { n: gids.length }));
     }
-    for (const key of ALL_DOWNLOAD_KEYS) {
+    for (const key of QUEUE) {
       void queryClient.invalidateQueries({ queryKey: key });
     }
     exitSelectMode();
