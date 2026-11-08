@@ -130,7 +130,12 @@ export function PagedReader({
       applyZoom(zoom * (dist / pinchDist.current));
       pinchDist.current = dist;
     } else if (pointers.current.size === 1 && zoom > 1) {
-      setPan((p) => ({ x: p.x + e.clientX - prev.x, y: p.y + e.clientY - prev.y }));
+      // In width mode the scroller owns vertical movement, so panning there
+      // would move the page twice for one drag.
+      setPan((p) => ({
+        x: p.x + e.clientX - prev.x,
+        y: fit === "width" ? p.y : p.y + e.clientY - prev.y,
+      }));
     }
   };
 
