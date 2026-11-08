@@ -1,7 +1,5 @@
 # Offline reading
 
-Implemented 2026-09-07.
-
 ## Use it
 
 1. Add a gallery to Downloads while connected and let its pages save.
@@ -33,7 +31,7 @@ Screenshots use synthetic browser fixtures.
 
 - Rust integration: download through a fixture source, reopen the database/manager, start a fresh loopback server with an empty cache, and retrieve the original saved bytes. Offline reads make no image-source calls. Coverage includes partial galleries, legacy names, AVIF content type, wrong tokens, missing and restored files, path boundaries, and repair without refetching saved pages.
 - Browser tests: open from Downloads, resume after reload, explicit page selection, retry newly available pages, unknown downloads, unreadable image recovery, and continuous reading at a narrow width. Remote HTTP hosts are blocked; local Vite assets remain reachable for reload. These use browser fixtures, not authenticated site downloads.
-- Validation passed: production frontend build, 171 Rust tests, 21 Playwright browser tests, and Clippy with warnings denied. Actual image decoding and native packaging across Linux, Windows and macOS still need platform smoke testing with real downloaded galleries.
+- Covered by the standard gates: the production frontend build, the Rust test suite, the Playwright browser suite and Clippy with warnings denied. Actual image decoding and native packaging across Linux, Windows and macOS still need platform smoke testing with real downloaded galleries.
 
 ## Remaining scope
 

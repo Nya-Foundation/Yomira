@@ -37,7 +37,7 @@ Acceptance: users can save a specific search, reopen its exact criteria, organiz
 
 ## Improve reading comfort
 
-- Fit width/height/original size, fullscreen and native keep-awake. RTL and swipe navigation are available in 0.2.0.
+- Fit width/height/original size, fullscreen and native keep-awake. RTL and swipe navigation are already available.
 - Optional spreads, per-gallery overrides, image save/share and page bookmarks.
 - Unified prefetch limits and quota-aware coordination with downloads.
 - Profile pointer transforms, long sessions and image decoding before changing rendering architecture.
