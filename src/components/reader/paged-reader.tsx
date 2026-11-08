@@ -12,25 +12,29 @@ import { OfflineContext, pageQueryOptions, usePageQuery } from "./page-query";
 
 export function PagedReader({
   controlsVisible,
+  toolbarH,
   gid,
   token,
   index,
   pageCount,
   go,
+  onToggleControls,
 }: {
   controlsVisible: boolean;
+  toolbarH: number;
   gid: number;
   token: string;
   index: number;
   pageCount: number;
   go: (delta: number) => void;
+  onToggleControls: () => void;
 }) {
   const t = useT();
   const queryClient = useQueryClient();
   const localOnly = useContext(OfflineContext);
   const readerPreloadCount = useSettings((s) => s.settings.readerPreloadCount);
   const direction = useSettings((s) => s.settings.readerDirection);
-  const gesture = useRef<{ x: number; y: number; blocked: boolean } | null>(null);
+  const gesture = useRef<{ x: number; y: number; blocked: boolean; edge: boolean } | null>(null);
   const suppressClickUntil = useRef(0);
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
@@ -99,7 +103,13 @@ export function PagedReader({
     const target = e.target as Element;
     if (target.closest("button:not([data-reader-edge]), a, input")) return;
     target.setPointerCapture?.(e.pointerId);
-    if (pointers.current.size === 0) gesture.current = { x: e.clientX, y: e.clientY, blocked: zoom > 1 };
+    if (pointers.current.size === 0)
+      gesture.current = {
+        x: e.clientX,
+        y: e.clientY,
+        blocked: zoom > 1,
+        edge: !!target.closest("[data-reader-edge]"),
+      };
     pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
     if (pointers.current.size === 2) {
       if (gesture.current) gesture.current.blocked = true;
@@ -131,8 +141,16 @@ export function PagedReader({
     gesture.current = null;
     const dx = e.clientX - start.x;
     const dy = e.clientY - start.y;
-    if (start.blocked || Math.hypot(dx, dy) > 12) suppressClickUntil.current = Date.now() + 400;
-    if (e.type === "pointercancel" || start.blocked) return;
+    const moved = Math.hypot(dx, dy);
+    if (start.blocked || moved > 12) suppressClickUntil.current = Date.now() + 400;
+    if (e.type === "pointercancel") return;
+    // A still tap off the paging edges is the only way to reach the toolbar
+    // once it is hidden.
+    if (moved <= 12 && !start.edge) {
+      onToggleControls();
+      return;
+    }
+    if (start.blocked) return;
     if (Math.abs(dx) >= 45 && Math.abs(dx) > Math.abs(dy) * 1.3) {
       go((dx < 0 ? 1 : -1) * (direction === "rtl" ? -1 : 1));
     }
@@ -142,7 +160,8 @@ export function PagedReader({
 
   return (
     <div
-      className={cn("relative flex min-h-0 flex-1 items-center justify-center overflow-hidden touch-none bg-background", controlsVisible && "pt-24")}
+      style={{ paddingTop: controlsVisible ? toolbarH : 0 }}
+      className={cn("relative flex min-h-0 flex-1 items-center justify-center overflow-hidden touch-none bg-background")}
       onWheel={onWheel}
       data-reader-surface
       onPointerDown={onPointerDown}

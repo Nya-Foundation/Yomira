@@ -2,6 +2,7 @@ import { AlertTriangle } from "lucide-react";
 import type { ReactNode } from "react";
 import { useT } from "../../lib/i18n";
 import { cn } from "../../lib/utils";
+import { Button } from "./button";
 
 export function ErrorState({
   title,
@@ -36,12 +37,9 @@ export function ErrorState({
       )}
       <div className="mt-2 flex items-center gap-2">
         {onRetry && (
-          <button
-            onClick={onRetry}
-            className="h-8 rounded-md border border-danger/30 bg-danger/10 px-3 text-small font-medium text-danger transition-colors hover:bg-danger/20"
-          >
+          <Button variant="outline" size="sm" onClick={onRetry}>
             {retryLabel ?? t("common.retry")}
-          </button>
+          </Button>
         )}
         {action}
       </div>

@@ -2,7 +2,7 @@ import { forwardRef, type ButtonHTMLAttributes } from "react";
 import { Link, type LinkProps } from "react-router-dom";
 import { cn } from "../../lib/utils";
 
-type Variant = "default" | "outline" | "ghost" | "ghost-link" | "subtle";
+type Variant = "default" | "outline" | "ghost" | "ghost-link" | "subtle" | "danger";
 type Size = "sm" | "md" | "icon";
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
@@ -19,6 +19,8 @@ const variants: Record<Variant, string> = {
   "ghost-link":
     "inline-flex h-8 items-center rounded-md border border-border px-3 text-small text-muted-foreground transition-colors hover:bg-surface-2 hover:text-foreground",
   subtle: "bg-surface-2 text-foreground hover:bg-overlay border border-border",
+  danger:
+    "border border-danger/30 bg-danger/10 text-danger hover:bg-danger/20",
 };
 
 const sizes: Record<Size, string> = {

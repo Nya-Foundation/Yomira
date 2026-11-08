@@ -4,7 +4,7 @@ import { NetworkTab } from "../components/settings/network-tab";
 import { PrivacyTab } from "../components/settings/privacy-tab";
 import { ReaderTab } from "../components/settings/reader-tab";
 import { SiteTab } from "../components/settings/site-tab";
-import { Tabs } from "../components/ui/tabs";
+import { Tabs, tabButtonId, tabPanelId } from "../components/ui/tabs";
 import { useT, type TKey } from "../lib/i18n";
 
 const TABS: { value: string; labelKey: TKey }[] = [
@@ -25,13 +25,20 @@ export function SettingsPage() {
         value={tab}
         onValueChange={setTab}
         tabs={TABS.map((tb) => ({ value: tb.value, label: t(tb.labelKey) }))}
+        idBase="settings"
         className="mb-6"
       />
-      {tab === "general" && <GeneralTab />}
-      {tab === "reader" && <ReaderTab />}
-      {tab === "site" && <SiteTab />}
-      {tab === "network" && <NetworkTab />}
-      {tab === "privacy" && <PrivacyTab />}
+      <div
+        role="tabpanel"
+        id={tabPanelId("settings", tab)}
+        aria-labelledby={tabButtonId("settings", tab)}
+      >
+        {tab === "general" && <GeneralTab />}
+        {tab === "reader" && <ReaderTab />}
+        {tab === "site" && <SiteTab />}
+        {tab === "network" && <NetworkTab />}
+        {tab === "privacy" && <PrivacyTab />}
+      </div>
       </div>
     </div>
   );

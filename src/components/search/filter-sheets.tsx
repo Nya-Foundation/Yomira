@@ -34,12 +34,14 @@ interface FilterSheetProps {
 
 
 /**
- * Sheet edits are held locally and committed once, on exit.
+ * Sheet edits are held locally and committed only by Apply.
  *
  * Writing straight through meant every chip and switch changed the list query
  * key, so configuring four categories and a few switches queued that many
  * listing requests at 500ms apart — for states the user was still composing,
  * ahead of the one they wanted. It also left "Apply" doing nothing but close.
+ * Dismissing (Escape, backdrop, close) discards instead, so the sheet's only
+ * commit point is the button that says it commits.
  */
 function useDraftParams(open: boolean, params: ListParams) {
   const [draft, setDraft] = useState(params);
@@ -54,13 +56,13 @@ function useDraftParams(open: boolean, params: ListParams) {
 
 export function CategorySheet({ open, onOpenChange, params, setParams }: FilterSheetProps) {
   const [draft, setDraft] = useDraftParams(open, params);
-  const close = (next: boolean) => {
-    if (!next) setParams(draft);
-    onOpenChange(next);
+  const apply = () => {
+    setParams(draft);
+    onOpenChange(false);
   };
   const t = useT();
   return (
-      <Sheet open={open} onOpenChange={close} title={t("list.sheet.categoriesTitle")}>
+      <Sheet open={open} onOpenChange={onOpenChange} title={t("list.sheet.categoriesTitle")}>
         <p className="mb-3 text-small leading-5 text-muted-foreground">
           {t("list.sheet.categoriesDesc")}
         </p>
@@ -96,13 +98,16 @@ export function CategorySheet({ open, onOpenChange, params, setParams }: FilterS
             );
           })}
         </div>
-        <div className="mt-4">
+        <div className="mt-4 flex items-center justify-between gap-2">
           <Button
             variant="outline"
             size="sm"
             onClick={() => setDraft((p) => ({ ...p, categories: null }))}
           >
             {t("list.sheet.allCategories")}
+          </Button>
+          <Button size="sm" onClick={apply}>
+            {t("list.sheet.apply")}
           </Button>
         </div>
       </Sheet>
@@ -111,13 +116,13 @@ export function CategorySheet({ open, onOpenChange, params, setParams }: FilterS
 
 export function AdvancedSearchSheet({ open, onOpenChange, params, setParams }: FilterSheetProps) {
   const [draft, setDraft] = useDraftParams(open, params);
-  const close = (next: boolean) => {
-    if (!next) setParams(draft);
-    onOpenChange(next);
+  const apply = () => {
+    setParams(draft);
+    onOpenChange(false);
   };
   const t = useT();
   return (
-      <Sheet open={open} onOpenChange={close} title={t("list.sheet.advancedTitle")}>
+      <Sheet open={open} onOpenChange={onOpenChange} title={t("list.sheet.advancedTitle")}>
         <div className="space-y-5">
           <div>
             <label className="mb-1.5 block text-small font-medium text-muted-foreground">
@@ -239,7 +244,7 @@ export function AdvancedSearchSheet({ open, onOpenChange, params, setParams }: F
             >
               {t("list.sheet.reset")}
             </Button>
-            <Button size="sm" onClick={() => close(false)}>
+            <Button size="sm" onClick={apply}>
               {t("list.sheet.apply")}
             </Button>
           </div>

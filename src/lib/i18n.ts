@@ -283,6 +283,7 @@ const en = {
   "history.clearAll": "Clear all",
   "history.entryCount": "{n} entry",
   "history.entriesCount": "{n} entries",
+  "history.entriesCountMore": "{n}+ entries",
   "history.remove": "Remove {title} from history",
   "history.loadMore": "Load more",
   "history.confirmTitle": "Clear all history?",
@@ -295,6 +296,9 @@ const en = {
 
   // downloads page
   "downloads.empty": "No downloads yet",
+  "downloads.emptyFiltered": "Nothing under this label",
+  "downloads.emptyFilteredDesc": "{n} downloads are hidden by the label filter.",
+  "downloads.showAll": "Show all downloads",
   "downloads.emptyDesc": "Use Add to downloads on a gallery page and it will show up here.",
   "downloads.loadError": "The download list could not be loaded.",
   "downloads.labels": "Labels",
@@ -533,6 +537,7 @@ const en = {
   "rating.stars": "Rate {n} stars",
   "rating.title": "Rate this gallery",
   "rating.submit": "Submit rating",
+  "rating.outOf": "Rated {n} out of 5",
   "rating.yourRating": "Your rating: {n} / 10",
 } as const;
 
@@ -795,6 +800,7 @@ const zh: Record<TKey, string> = {
   "history.clearAll": "清除全部",
   "history.entryCount": "{n} 条记录",
   "history.entriesCount": "{n} 条记录",
+  "history.entriesCountMore": "{n}+ 条记录",
   "history.remove": "从历史记录中移除「{title}」",
   "history.loadMore": "加载更多",
   "history.confirmTitle": "确定要清除全部历史记录吗？",
@@ -806,6 +812,9 @@ const zh: Record<TKey, string> = {
   "history.clearFailed": "无法清除历史记录",
 
   "downloads.empty": "还没有下载任务",
+  "downloads.emptyFiltered": "此标签下没有任务",
+  "downloads.emptyFilteredDesc": "有 {n} 个下载任务被标签筛选隐藏。",
+  "downloads.showAll": "显示全部下载",
   "downloads.emptyDesc": "在画廊详情页点击「加入下载」，任务会显示在这里。",
   "downloads.loadError": "下载列表加载失败。",
   "downloads.labels": "标签",
@@ -1022,6 +1031,7 @@ const zh: Record<TKey, string> = {
   "rating.stars": "评 {n} 星",
   "rating.title": "为画廊评分",
   "rating.submit": "提交评分",
+  "rating.outOf": "5 分中 {n} 分",
   "rating.yourRating": "你的评分：{n} / 10",
 };
 

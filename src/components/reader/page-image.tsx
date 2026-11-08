@@ -1,8 +1,9 @@
 import { RefreshCw } from "lucide-react";
 import { useContext, useState, type ComponentProps } from "react";
 import { ApiError } from "../../lib/api";
+import { errorCopy, siteMessage } from "../../lib/api/errors";
 import { useT } from "../../lib/i18n";
-import { Button } from "../ui/button";
+import { Button, GhostLink } from "../ui/button";
 
 import { OfflineContext } from "./page-query";
 
@@ -31,15 +32,23 @@ export function PageErrorCard({ error, onRetry }: { error: unknown; onRetry: () 
         {t(unavailable ? "reader.pageNotSaved" : is509 ? "reader.509title" : "reader.pageFailed")}
       </p>
       <p className="text-caption leading-5 text-muted-foreground">
-        {unavailable ? t("reader.pageNotSavedDesc") : is509
-          ? t("reader.509desc")
-          : error instanceof Error
-            ? error.message
-            : t("common.unknownError")}
+        {unavailable
+          ? t("reader.pageNotSavedDesc")
+          : is509
+            ? t("reader.509desc")
+            : siteMessage(error) ?? t(errorCopy(error).desc)}
       </p>
-      <Button variant="outline" size="sm" onClick={onRetry} className="gap-1.5">
-        <RefreshCw size={13} strokeWidth={1.75} /> {t("common.retry")}
-      </Button>
+      <div className="flex items-center gap-2">
+        <Button variant="outline" size="sm" onClick={onRetry} className="gap-1.5">
+          <RefreshCw size={13} strokeWidth={1.75} /> {t("common.retry")}
+        </Button>
+        {!unavailable && !is509 && errorCopy(error).action === "signin" && (
+          <GhostLink to="/signin">{t("common.signIn")}</GhostLink>
+        )}
+        {!unavailable && !is509 && errorCopy(error).action === "offline" && (
+          <GhostLink to="/downloads">{t("nav.downloads")}</GhostLink>
+        )}
+      </div>
     </div>
   );
 }

@@ -1,6 +1,6 @@
 import { nextListPage } from "../lib/pagination";
 import type { ListPage } from "../lib/types";
-import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowRightToLine, Filter, Image as ImageIcon, Info, Plus, Search, SlidersHorizontal, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
@@ -95,13 +95,18 @@ function saveListState(mode: string, entry: string, state: SavedListState) {
 export function GalleryListPage({ mode }: { mode: ListMode }) {
   const t = useT();
   const caps = MODE_CAPS[mode];
+  const queryClient = useQueryClient();
   const location = useLocation();
   const [saved] = useState(() => loadListState(mode, location.key));
   const [params, setParams] = useState<ListParams>(() => ({ ...(saved?.params ?? DEFAULT_LIST_PARAMS), search: new URLSearchParams(location.search).get("search") ?? saved?.searchInput ?? "" }));
   const [searchInput, setSearchInput] = useState<string>(
     () => new URLSearchParams(window.location.search).get("search") ?? saved?.searchInput ?? "",
   );
-  const search = useDebounced(searchInput, 300);
+  // 300ms is shorter than an ordinary pause between words, so composing a
+  // query executed a listing per pause — each taking a slot in the 500ms
+  // queue ahead of the search actually meant. Trimming before the debounce
+  // also stops a trailing space counting as a different query.
+  const search = useDebounced(searchInput.trim(), 700);
   const [catSheetOpen, setCatSheetOpen] = useState(false);
   const [advSheetOpen, setAdvSheetOpen] = useState(false);
   const [newQuick, setNewQuick] = useState("");
@@ -145,10 +150,20 @@ export function GalleryListPage({ mode }: { mode: ListMode }) {
 
   useEffect(() => {
     setParams((p) => ({ ...p, search }));
-    // The debounced value landing here is the point where a search actually
-    // executes; that is when the term enters the history.
-    if (search.trim()) recordSearch(search.trim());
   }, [search]);
+
+  /**
+   * History records what was committed, not every prefix the user happened to
+   * pause inside: it used to fill with fragments like "artist:" that nobody
+   * searched for, which then crowded out the real terms in the dropdown.
+   */
+  const commitSearch = () => {
+    const term = searchInput.trim();
+    if (!term) return;
+    void Promise.resolve(recordSearch(term)).then(() =>
+      queryClient.invalidateQueries({ queryKey: ["search-history"] }),
+    );
+  };
 
   // any change to the search params or mode starts the listing back at page 1.
   // Identity changes don't count (the debounced search re-sets params with the
@@ -237,7 +252,7 @@ export function GalleryListPage({ mode }: { mode: ListMode }) {
       <div className="flex shrink-0 flex-col gap-2 border-b border-border px-4 pb-3 pt-3">
         <div className="flex flex-wrap items-center gap-2">
           {caps.query && (<>
-          <div className="relative w-full min-w-0 sm:w-auto sm:flex-1">
+          <div className="app-search relative w-full min-w-0 sm:w-auto sm:min-w-72 sm:flex-1">
             <Search
               size={14}
               className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-faint-foreground"
@@ -248,7 +263,10 @@ export function GalleryListPage({ mode }: { mode: ListMode }) {
               value={searchInput}
               onChange={(e) => { setSearchInput(e.target.value); autocomplete.onSelect(e); }}
               onSelect={autocomplete.onSelect}
-              onKeyDown={autocomplete.onKeyDown}
+              onKeyDown={(e) => {
+                autocomplete.onKeyDown(e);
+                if (e.key === "Enter" && !e.defaultPrevented) commitSearch();
+              }}
               onFocus={() => {
                 autocomplete.onFocus();
                 setHistFocused(true);
@@ -256,9 +274,10 @@ export function GalleryListPage({ mode }: { mode: ListMode }) {
               onBlur={() => {
                 autocomplete.onBlur();
                 setHistFocused(false);
+                commitSearch();
               }}
               placeholder={t("list.searchPlaceholder")}
-              className="pl-8 pr-9"
+              className="pl-8 pr-9 pointer-coarse:pr-15"
               aria-label={t("list.searchAria")}
             />
             {autocomplete.dropdown}

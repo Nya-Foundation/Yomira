@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { X } from "lucide-react";
 import { useT } from "../../lib/i18n";
 import { cn } from "../../lib/utils";
+import { Button } from "./button";
 import { Modal } from "./modal";
 
 interface DialogProps {
@@ -51,21 +52,18 @@ export function ConfirmDialog({
     <Dialog open={open} onOpenChange={onOpenChange} title={title} className="max-w-sm">
       {description && <p className="mb-4 text-base leading-6 text-muted-foreground">{description}</p>}
       <div className="flex justify-end gap-2">
-        <button
-          onClick={() => onOpenChange(false)}
-          className="h-8 rounded-md border border-border px-3 text-base text-muted-foreground transition-colors hover:bg-surface-2 hover:text-foreground"
-        >
+        <Button variant="outline" onClick={() => onOpenChange(false)}>
           {t("common.cancel")}
-        </button>
-        <button
+        </Button>
+        <Button
+          variant="danger"
           onClick={() => {
             onConfirm();
             onOpenChange(false);
           }}
-          className="h-8 rounded-md border border-danger/30 bg-danger/10 px-3 text-base font-medium text-danger transition-colors hover:bg-danger/20"
         >
           {confirmLabel ?? t("common.confirm")}
-        </button>
+        </Button>
       </div>
     </Dialog>
   );

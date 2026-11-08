@@ -17,7 +17,10 @@ export function RatingHearts({
 }) {
   const t = useT();
   return (
-    <span className={cn("inline-flex items-center gap-0.5", className)}>
+    <span
+      className={cn("inline-flex items-center gap-0.5", className)}
+      {...(interactive ? {} : { role: "img", "aria-label": t("rating.outOf", { n: value }) })}
+    >
       {[1, 2, 3, 4, 5].map((i) => {
         const filled = value >= i - 0.25;
         const heart = (

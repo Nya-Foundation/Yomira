@@ -9,15 +9,17 @@ import { ErrorState } from "../components/ui/error-state";
 import { ConfirmDialog } from "../components/ui/dialog";
 import { Button, GhostLink } from "../components/ui/button";
 import { useToastedMutation } from "../lib/use-toasted-mutation";
-import { useT } from "../lib/i18n";
+import { currentLocale, useT } from "../lib/i18n";
 
 function formatTime(ts: number): string {
   const d = new Date(ts);
   const today = new Date();
   const sameDay = d.toDateString() === today.toDateString();
+  // The chosen language, not whatever locale the webview itself reports.
+  const locale = currentLocale();
   return sameDay
-    ? d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })
-    : d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+    ? d.toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" })
+    : d.toLocaleDateString(locale, { month: "short", day: "numeric", year: "numeric" });
 }
 
 const HISTORY_PAGE_SIZE = 50;
@@ -103,9 +105,11 @@ export function HistoryPage() {
     <div className="mx-auto h-full max-w-4xl overflow-y-auto p-4">
       <div className="mb-3 flex items-center justify-between">
         <p className="font-mono text-caption text-faint-foreground tabular-nums">
-          {entries.length === 1
-            ? t("history.entryCount", { n: entries.length })
-            : t("history.entriesCount", { n: entries.length })}
+          {query.hasNextPage
+            ? t("history.entriesCountMore", { n: entries.length })
+            : entries.length === 1
+              ? t("history.entryCount", { n: entries.length })
+              : t("history.entriesCount", { n: entries.length })}
         </p>
         <Button variant="outline" size="sm" onClick={() => setConfirmClear(true)}>
           {t("history.clearAll")}

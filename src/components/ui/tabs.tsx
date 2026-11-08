@@ -1,6 +1,9 @@
 import type { ReactNode } from "react";
 import { cn } from "../../lib/utils";
 
+export const tabButtonId = (base: string, value: string) => `${base}-tab-${value}`;
+export const tabPanelId = (base: string, value: string) => `${base}-panel-${value}`;
+
 export interface TabDef {
   value: string;
   label: ReactNode;
@@ -10,11 +13,14 @@ export function Tabs({
   tabs,
   value,
   onValueChange,
+  idBase,
   className,
 }: {
   tabs: TabDef[];
   value: string;
   onValueChange: (value: string) => void;
+  /** Ties each tab to its panel; the panel must carry `tabPanelId(idBase, value)`. */
+  idBase: string;
   className?: string;
 }) {
   return (
@@ -29,6 +35,10 @@ export function Tabs({
         <button
           key={t.value}
           role="tab"
+          id={tabButtonId(idBase, t.value)}
+          // Only the selected panel is mounted, so pointing an inactive tab at
+          // it would leave a dangling IDREF.
+          aria-controls={value === t.value ? tabPanelId(idBase, t.value) : undefined}
           aria-selected={value === t.value}
           tabIndex={value === t.value ? 0 : -1}
           onKeyDown={(event) => {

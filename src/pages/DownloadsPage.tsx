@@ -2,6 +2,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   AlertTriangle,
   Download,
+  Filter,
   FolderDown,
   ListChecks,
   Pause,
@@ -124,6 +125,13 @@ export function DownloadsPage() {
     invalidateKeys: QUEUE_AND_ROOT,
     onSuccess: () => setRootDialogOpen(false),
   });
+
+  // Only the row whose action is in flight; one global flag greyed out the
+  // controls on every other download as well.
+  const rowBusy = (gid: number) =>
+    (startMutation.isPending && startMutation.variables === gid) ||
+    (pauseMutation.isPending && pauseMutation.variables === gid) ||
+    (assignLabelMutation.isPending && assignLabelMutation.variables?.gid === gid);
 
   const labels = labelsQuery.data ?? [];
   const all = downloadsQuery.data ?? [];
@@ -342,11 +350,24 @@ export function DownloadsPage() {
           onRetry={() => void downloadsQuery.refetch()}
         />
       ) : entries.length === 0 ? (
-        <EmptyState
-          icon={Download}
-          title={t("downloads.empty")}
-          description={t("downloads.emptyDesc")}
-        />
+        labelFilter !== null && all.length > 0 ? (
+          <EmptyState
+            icon={Filter}
+            title={t("downloads.emptyFiltered")}
+            description={t("downloads.emptyFilteredDesc", { n: all.length })}
+            action={
+              <Button variant="outline" size="sm" onClick={() => setLabelFilter(null)}>
+                {t("downloads.showAll")}
+              </Button>
+            }
+          />
+        ) : (
+          <EmptyState
+            icon={Download}
+            title={t("downloads.empty")}
+            description={t("downloads.emptyDesc")}
+          />
+        )
       ) : (
         <div className="min-h-0 flex-1 overflow-y-auto">
           {entries.map((d) => (
@@ -354,7 +375,7 @@ export function DownloadsPage() {
               key={d.gid}
               entry={d}
               labels={labels}
-              busy={startMutation.isPending || pauseMutation.isPending || assignLabelMutation.isPending}
+              busy={rowBusy(d.gid)}
               selectMode={selectMode}
               selected={selected.has(d.gid)}
               onToggleSelect={() => toggleSelected(d.gid)}
@@ -424,7 +445,9 @@ export function DownloadsPage() {
             <Button variant="outline" size="sm" onClick={() => setBatchRemoveOpen(false)}>
               {t("common.cancel")}
             </Button>
-            <button
+            <Button
+              variant="danger"
+              size="sm"
               onClick={() => {
                 setBatchRemoveOpen(false);
                 void runBatch(
@@ -433,10 +456,9 @@ export function DownloadsPage() {
                 );
               }}
               disabled={batchBusy}
-              className="h-7 rounded-md border border-danger/30 bg-danger/10 px-2.5 text-small font-medium text-danger transition-colors hover:bg-danger/20 disabled:pointer-events-none disabled:opacity-50"
             >
               {t("common.confirm")}
-            </button>
+            </Button>
           </div>
         </Dialog>
       )}
@@ -467,13 +489,14 @@ export function DownloadsPage() {
             <Button variant="outline" size="sm" onClick={() => setRemoveTarget(null)}>
               {t("common.cancel")}
             </Button>
-            <button
+            <Button
+              variant="danger"
+              size="sm"
               onClick={() => removeMutation.mutate(removeTarget)}
               disabled={removeMutation.isPending}
-              className="h-7 rounded-md border border-danger/30 bg-danger/10 px-2.5 text-small font-medium text-danger transition-colors hover:bg-danger/20 disabled:pointer-events-none disabled:opacity-50"
             >
               {t("common.confirm")}
-            </button>
+            </Button>
           </div>
         </Dialog>
       )}

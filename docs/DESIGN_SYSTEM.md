@@ -14,7 +14,8 @@ Design read: minimalist daily-use media app. Design variance 4/10, motion 2/10, 
 | Main text | `#f4f4f5` | `#18181b` |
 | Supporting text | `#a1a1aa` | `#52525b` |
 | Faint text | `#9696a0` | `#666670` |
-| Accent | `#fb7185` | `#e11d48` |
+| Accent | `#fb7185` | `#be123c` |
+| Control border | `#71717a` | `#8a8a91` |
 
 Use semantic colors from `src/index.css`, not page-specific gray values. Rose indicates selection and primary action; success/warning/error colors retain their status meanings. Category colors may communicate category identity, but should not compete with every cover.
 

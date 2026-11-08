@@ -55,7 +55,7 @@ export function Header({ onOpenPalette }: { onOpenPalette: () => void }) {
           )}
         >
           <Search size={14} strokeWidth={1.75} />
-          <span className="hidden flex-1 text-left sm:block">{t("header.searchPlaceholder")}</span>
+          <span className="hidden min-w-0 flex-1 truncate text-left sm:block">{t("header.searchPlaceholder")}</span>
           <kbd className="hidden sm:block rounded border border-border bg-surface-2 px-1 font-mono text-[10px] text-faint-foreground">
             /
           </kbd>

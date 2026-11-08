@@ -11,6 +11,7 @@ import { usePageQuery } from "./page-query";
 
 export function ContinuousReader({
   controlsVisible,
+  toolbarH,
   gid,
   token,
   index,
@@ -18,6 +19,7 @@ export function ContinuousReader({
   onIndexChange,
 }: {
   controlsVisible: boolean;
+  toolbarH: number;
   gid: number;
   token: string;
   index: number;
@@ -85,17 +87,27 @@ export function ContinuousReader({
     if (!restored.current || pageH <= 0) return;
     const el = scrollRef.current;
     if (!el) return;
-    const inset = controlsVisible ? 6 * parseFloat(getComputedStyle(el).fontSize) : 0;
+    const inset = controlsVisible ? toolbarH : 0;
     const position = Math.max(0, el.scrollTop + el.clientHeight / 2 - inset);
     const current = Math.min(pageCount - 1, Math.floor(position / pageH));
     if (current !== lastIndexRef.current) {
       lastIndexRef.current = current;
       onIndexChange(current);
     }
-  }, [pageH, pageCount, onIndexChange, controlsVisible]);
+  }, [pageH, pageCount, onIndexChange, controlsVisible, toolbarH]);
+
+  // Toggling the chrome changes the top padding, which would otherwise slide
+  // the page the reader is looking at by the height of the bar.
+  const padRef = useRef(controlsVisible ? toolbarH : 0);
+  useLayoutEffect(() => {
+    const pad = controlsVisible ? toolbarH : 0;
+    const delta = pad - padRef.current;
+    padRef.current = pad;
+    if (delta !== 0 && scrollRef.current) scrollRef.current.scrollTop += delta;
+  }, [controlsVisible, toolbarH]);
 
   return (
-    <div ref={scrollRef} data-reader-zoom={zoom} onScroll={currentFromScroll} className={cn("min-h-0 flex-1 overflow-auto", controlsVisible && "pt-24")}>
+    <div ref={scrollRef} data-reader-zoom={zoom} onScroll={currentFromScroll} style={{ paddingTop: controlsVisible ? toolbarH : 0 }} className={cn("min-h-0 flex-1 overflow-auto")}>
       <div
         className="relative mx-auto flex flex-col items-center"
         style={{ height: pageCount * pageH, width: pageW }}

@@ -18,19 +18,21 @@ export const CATEGORY_COLORS: Record<Category, string> = {
 /**
  * The same value is the badge's text, its 17% fill and its 55% border, so each
  * theme needs its own set: the dark values sit at 2.0-3.3:1 as text on a pale
- * tint. Each entry below was solved for at least 4.5:1 against its own fill.
+ * tint. Solved for at least 4.5:1 against its own fill over *both* pale
+ * surfaces — badges sit on the canvas as well as on cards, and solving only
+ * against the card left eight of these at 4.34-4.47 on the canvas.
  */
 export const CATEGORY_COLORS_LIGHT: Record<Category, string> = {
   Doujinshi: "#c00000",
-  Manga: "#9a500f",
-  "Artist CG": "#786520",
-  "Game CG": "#526d25",
-  Western: "#2e7142",
+  Manga: "#984f0f",
+  "Artist CG": "#74621f",
+  "Game CG": "#516b24",
+  Western: "#2d6f41",
   "Non-H": "#286f57",
-  "Image Set": "#316e78",
-  Cosplay: "#3563ae",
-  "Asian Porn": "#6c57a9",
-  Misc: "#875195",
+  "Image Set": "#306b74",
+  Cosplay: "#3462ac",
+  "Asian Porn": "#6b56a8",
+  Misc: "#844f92",
 };
 
 export const FAVORITE_SLOTS = 10;

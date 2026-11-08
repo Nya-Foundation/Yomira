@@ -39,6 +39,8 @@ function ReaderSession() {
   const updateSettings = useSettings((s) => s.update);
   const t = useT();
   const [controlsVisible, setControlsVisible] = useState(true);
+  // 6rem was the old hard-coded guess; it is only the starting value now.
+  const [toolbarH, setToolbarH] = useState(84);
 
   const detailQuery = useQuery<DownloadedGallery | GalleryDetail | null>({
     queryKey: [offline ? "downloaded-gallery" : "gallery-detail", gidNum, token],
@@ -130,6 +132,7 @@ function ReaderSession() {
   return (
     <div className="relative flex h-full flex-col">
       <ReaderToolbar
+        onHeight={setToolbarH}
         hidden={!controlsVisible}
         setHidden={(hidden) => setControlsVisible(!hidden)}
         index={index}
@@ -141,10 +144,11 @@ function ReaderSession() {
         offlineStatus={offline && detailQuery.data && "availablePages" in detailQuery.data ? t("reader.offlineStatus", { a: detailQuery.data.availablePages.length, b: pageCount }) : undefined}
       />
       {readerMode === "paged" ? (
-        <PagedReader controlsVisible={controlsVisible} gid={gidNum} token={token} index={index} pageCount={pageCount} go={go} />
+        <PagedReader controlsVisible={controlsVisible} toolbarH={toolbarH} gid={gidNum} token={token} index={index} pageCount={pageCount} go={go} onToggleControls={() => setControlsVisible((v) => !v)} />
       ) : (
         <ContinuousReader
           controlsVisible={controlsVisible}
+          toolbarH={toolbarH}
           gid={gidNum}
           token={token}
           index={index}

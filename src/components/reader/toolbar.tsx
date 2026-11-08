@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   BookOpen,
   ChevronDown,
@@ -23,6 +23,7 @@ export function ReaderToolbar({
   onIndexChange,
   title,
   offlineStatus,
+  onHeight,
 }: {
   hidden: boolean;
   setHidden: (hidden: boolean) => void;
@@ -33,6 +34,8 @@ export function ReaderToolbar({
   onIndexChange: (i: number) => void;
   title: string;
   offlineStatus?: string;
+  /** Reports the bar's measured height so the reader can reserve exactly it. */
+  onHeight?: (height: number) => void;
 }) {
   const t = useT();
   // Every intermediate value of a drag would reserve its own throttled page
@@ -41,6 +44,16 @@ export function ReaderToolbar({
   const [scrub, setScrub] = useState<number | null>(null);
   const shown = scrub ?? index;
   useEffect(() => setScrub(null), [index]);
+  const barRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = barRef.current;
+    if (!el || !onHeight) return;
+    const observer = new ResizeObserver(() => onHeight(el.getBoundingClientRect().height));
+    observer.observe(el);
+    onHeight(el.getBoundingClientRect().height);
+    return () => observer.disconnect();
+  }, [hidden, onHeight]);
+
   const commit = () => {
     if (scrub !== null && scrub !== index) onIndexChange(scrub);
     setScrub(null);
@@ -53,7 +66,7 @@ export function ReaderToolbar({
   );
 
   return (
-    <div className="absolute inset-x-0 top-0 z-30 border-b border-border bg-background">
+    <div ref={barRef} className="absolute inset-x-0 top-0 z-30 border-b border-border bg-background">
       <div className="flex min-h-14 items-center gap-2 px-3">
         <NavigationControls />
         <div className="min-w-0 flex-1">

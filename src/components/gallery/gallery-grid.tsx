@@ -58,6 +58,9 @@ export function GalleryGrid({
   const [width, setWidth] = useState(0);
   const restoredKeyRef = useRef<string | null>(null);
   const saveRafRef = useRef<number | null>(null);
+  /** Item index at the top of the viewport, and the layout it was read under. */
+  const anchorRef = useRef(0);
+  const layoutRef = useRef<{ cols: number; rowH: number } | null>(null);
   const onLoadMoreRef = useRef(onLoadMore);
   onLoadMoreRef.current = onLoadMore;
 
@@ -111,6 +114,11 @@ export function GalleryGrid({
     saveRafRef.current = requestAnimationFrame(() => {
       saveRafRef.current = null;
       saveScroll();
+      const el = scrollRef.current;
+      const layout = layoutRef.current;
+      if (el && layout) {
+        anchorRef.current = Math.floor(el.scrollTop / layout.rowH) * layout.cols;
+      }
     });
   }, [saveScroll]);
 
@@ -138,6 +146,23 @@ export function GalleryGrid({
   useLayoutEffect(() => {
     virtualizer.measure();
   }, [width, scale, density, view, virtualizer]);
+
+  /**
+   * Rotating a tablet changes the column count and the row height together, so
+   * the offset that was kept pointed at an unrelated part of the list — the
+   * further you had scrolled, the further off it landed. Re-anchor on the item
+   * that was at the top instead. The first run only records the layout, which
+   * leaves the saved-offset restore above to place the initial scroll.
+   */
+  useLayoutEffect(() => {
+    if (width === 0 || galleries.length === 0) return;
+    const prev = layoutRef.current;
+    layoutRef.current = { cols, rowH };
+    if (!prev || (prev.cols === cols && prev.rowH === rowH)) return;
+    // Rows carry measured heights, so the virtualizer's own offsets place the
+    // row more accurately than multiplying by the estimate.
+    virtualizer.scrollToIndex(Math.floor(anchorRef.current / cols), { align: "start" });
+  }, [cols, rowH, width, galleries.length, virtualizer]);
 
   // load-more sentinel: created once per open/fetching state; the callback is
   // read through a ref so loaded pages don't churn the observer

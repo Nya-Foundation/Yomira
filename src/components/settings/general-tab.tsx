@@ -97,7 +97,7 @@ function AccountRow() {
   const mutation = useMutation({
     mutationFn: signOut,
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["signin"] });
+      queryClient.clear();
       toast.info(t("settings.general.signedOut"));
       void navigate("/signin");
     },
