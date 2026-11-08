@@ -5,6 +5,8 @@
 //!   `setup()` from the app config/data directories.
 //! * Cookie persistence: `cookies.json` restored at startup, re-saved every
 //!   60 s and on `RunEvent::ExitRequested`.
+//! * One shared `Arc<EhClient>` serves the reader and the download workers,
+//!   so the site request throttle applies to the app as a whole.
 //! * App data lives in `app_config_dir()/exviewer.db`, owned by rusqlite.
 //!   Frontend access goes through typed commands; migrations run in `Db::open`.
 
@@ -47,11 +49,15 @@ fn build_state(app: &tauri::App) -> Result<AppState, Box<dyn std::error::Error>>
         cookie_store.restore(dump)?;
     }
 
-    let client = EhClient::new(
+    // One client for the whole app: the reader and the download workers share
+    // its request throttle, preview cache, image dedup map, DNS resolver and
+    // connection pool. Two instances would let the app emit twice the intended
+    // request rate against a single IP.
+    let client = Arc::new(EhClient::new(
         client_config,
         cookie_store.clone() as Arc<dyn EhCookieStore>,
         hosts.clone(),
-    )?;
+    )?);
 
     // Loopback image server: the webview can't load Tauri's `asset://`
     // scheme (WebKit2GTK blocks custom schemes from the dev origin), so
@@ -72,18 +78,10 @@ fn build_state(app: &tauri::App) -> Result<AppState, Box<dyn std::error::Error>>
     std::fs::create_dir_all(&tag_db_dir)?;
     let tag_db = Arc::new(tags::TagDb::load(tag_db_dir));
 
-    // Downloads engine. The engine runs its own EhClient instance (the
-    // reader's client lives in AppState and cannot be aliased into the
-    // worker pool); it shares the app's cookie store and hosts table, so
-    // sessions and DNS overrides apply to downloads too. `init` restores
-    // the queue from the downloads table and scans the gallery dirs
-    // (resume). Network-config changes can be pushed through via
-    // `DownloadManager::apply_client_config`.
-    let download_source: Arc<dyn PageSource> = Arc::new(EhPageSource::new(EhClient::new(
-        network.to_client_config()?,
-        cookie_store.clone() as Arc<dyn EhCookieStore>,
-        hosts.clone(),
-    )?));
+    // Downloads engine, driving the shared client above. `init` restores the
+    // queue from the downloads table and scans the gallery dirs (resume).
+    // `EhClient::update_config` reaches the worker pool through this clone.
+    let download_source: Arc<dyn PageSource> = Arc::new(EhPageSource::new(client.clone()));
     let downloads = DownloadManager::init(
         &config_dir.join("exviewer.db"),
         data_dir.join("downloads"),

@@ -360,9 +360,7 @@ pub async fn set_network_config(
     // client when site/proxy changed; cookies survive).
     config.save(&state.db)?;
     let client_config = config.to_client_config()?;
-    // The download engine owns a second client sharing our cookies/hosts;
-    // keep its config in sync (site/proxy changes apply without restart).
-    state.downloads.apply_client_config(&client_config)?;
+    // The download engine shares this client, so one update covers both.
     state.client.update_config(client_config)?;
     *state.hosts.write().map_err(|_| EhError::Cancelled)? = config.parsed_hosts();
     state

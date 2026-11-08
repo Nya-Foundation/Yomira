@@ -99,8 +99,8 @@ pub struct EhClient {
     /// In-flight image dedup: url|referer → shared fetch result.
     in_flight: Arc<InFlightMap>,
     /// Preview sets and harvested ptokens for ptoken resolution, keyed
-    /// `(gid, gtoken, ...)`; shared so the reader and the download
-    /// engine don't re-hit the site for the same preview page.
+    /// `(gid, gtoken, ...)`. Per client instance: the reader and the download
+    /// engine run separate clients, so they do not share these entries.
     preview_cache: Arc<tokio::sync::Mutex<PreviewCache>>,
     /// Site-wide request throttle: HTML/API calls are spaced at least this
     /// far apart so a browsing session (or the reader's preload burst) can

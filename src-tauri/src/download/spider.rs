@@ -63,36 +63,25 @@ pub trait PageSource: Send + Sync {
         image_url: &'a str,
         referer: &'a str,
     ) -> Pin<Box<dyn Future<Output = Result<FetchedImage, EhError>> + Send + 'a>>;
-
-    /// Apply network-config changes to an underlying client. No-op for
-    /// sources without a client (mocks).
-    fn update_config(&self, _config: &crate::core::ClientConfig) -> Result<(), EhError> {
-        Ok(())
-    }
 }
 
-/// Production [`PageSource`] driving the download engine's own [`EhClient`]
-/// (port of the SpiderQueen → EhEngine call chain).
+/// Production [`PageSource`] driving the shared [`EhClient`] (port of the
+/// SpiderQueen → EhEngine call chain).
 ///
-/// The engine uses a second client instance sharing the app's cookie store
-/// and hosts table (the reader's client lives in `AppState` and cannot be
-/// aliased); `apply_client_config` keeps proxy/site changes in sync — the
-/// `set_network_config` command should call `DownloadManager::apply_client_config`.
+/// This is the same client instance `AppState` holds, so `update_config` on it
+/// reaches the worker pool too, and downloads share the reader's request
+/// throttle instead of doubling the app's request rate against one IP.
 pub struct EhPageSource {
-    client: EhClient,
+    client: Arc<EhClient>,
 }
 
 impl EhPageSource {
-    pub fn new(client: EhClient) -> Self {
+    pub fn new(client: Arc<EhClient>) -> Self {
         Self { client }
     }
 }
 
 impl PageSource for EhPageSource {
-    fn update_config(&self, config: &crate::core::ClientConfig) -> Result<(), EhError> {
-        self.client.update_config(config.clone())
-    }
-
     fn resolve_page<'a>(
         &'a self,
         gid: u64,

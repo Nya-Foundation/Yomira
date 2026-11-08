@@ -316,13 +316,6 @@ impl DownloadManager {
         }
     }
 
-    /// Apply network-config changes to the download engine's client.
-    /// (The `set_network_config` command should call this; see the module
-    /// docs in `lib.rs`.)
-    pub fn apply_client_config(&self, config: &crate::core::ClientConfig) -> Result<(), EhError> {
-        self.inner.source.update_config(config)
-    }
-
     // ------------------------------------------------------------------
     // Queue queries
     // ------------------------------------------------------------------

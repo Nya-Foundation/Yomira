@@ -20,7 +20,10 @@ pub type SignInOutcome = Result<(), EhError>;
 
 /// Everything the commands need, built once in `setup()`.
 pub struct AppState {
-    pub client: EhClient,
+    /// Shared with the download engine's `PageSource`, so both the reader and
+    /// the worker pool observe one request throttle, preview cache, image
+    /// dedup map and connection pool.
+    pub client: Arc<EhClient>,
     /// Concrete cookie store behind the client's `Arc<dyn EhCookieStore>`;
     /// kept separately so commands can dump/persist/restore it.
     pub cookie_store: Arc<InMemoryCookieStore>,
