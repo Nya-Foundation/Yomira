@@ -57,6 +57,14 @@ a real response header and drives it in Chromium, failing on any violation or
 blank screen. Chromium is WebView2's engine; WebKitGTK and WKWebView still
 need a packaged smoke test when the policy changes.
 
+Confirming enforcement inside WebKitGTK needs a desktop session with devtools,
+not a headless run. Three things make the obvious shortcuts useless: the window
+does not paint under Xvfb, so a screenshot proves nothing; `default-src 'none'`
+does not stop the app, because Tauri nonces the scripts it injects and the
+page's own; and `connect-src 'none'` does not stop IPC, because the Linux IPC
+goes through WebKit message handlers, which CSP does not govern. Open devtools
+in a `tauri dev` window and read the console instead.
+
 Performance profiling is separate from correctness gates because host load
 affects timing. See [PERFORMANCE.md](PERFORMANCE.md) for the fixed workload
 and measurement limits.
