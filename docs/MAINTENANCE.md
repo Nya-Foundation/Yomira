@@ -54,16 +54,24 @@ and record native manual checks separately.
 
 `bun run check:csp` serves the production build with the configured policy as
 a real response header and drives it in Chromium, failing on any violation or
-blank screen. Chromium is WebView2's engine; WebKitGTK and WKWebView still
-need a packaged smoke test when the policy changes.
+blank screen. Chromium is WebView2's engine; `bun run check:csp:webkit` covers
+WebKitGTK, which is what Linux ships. WKWebView still needs a packaged smoke
+test when the policy changes.
 
-Confirming enforcement inside WebKitGTK needs a desktop session with devtools,
-not a headless run. Three things make the obvious shortcuts useless: the window
-does not paint under Xvfb, so a screenshot proves nothing; `default-src 'none'`
-does not stop the app, because Tauri nonces the scripts it injects and the
-page's own; and `connect-src 'none'` does not stop IPC, because the Linux IPC
-goes through WebKit message handlers, which CSP does not govern. Open devtools
-in a `tauri dev` window and read the console instead.
+A packaged build serves the configured policy plus a generated `script-src`
+holding `'self'` and one sha256 hash per inline script — 40 of them at the time
+of writing. That `'self'` is why the route chunks load, and why no script tag
+carries a nonce. To test the real string rather than the configured one,
+provoke a violation in a running build, read `originalPolicy` off the event,
+and pass the result with `--policy-file`.
+
+The WebKitGTK check wants no devtools and no visible window: the page reports
+its own findings over HTTP, so an offscreen webview is enough. A screenshot
+would prove nothing, because the window does not paint without a GPU. Measured
+on WebKitGTK 2.52.6: unhashed inline scripts and `eval` are blocked, sha256 and
+`'self'` sources are honored, and a cross-origin fetch is blocked by
+`connect-src`. `connect-src` does not govern IPC on Linux, though, which goes
+through WebKit message handlers.
 
 Performance profiling is separate from correctness gates because host load
 affects timing. See [PERFORMANCE.md](PERFORMANCE.md) for the fixed workload
