@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { Inbox, LayoutGrid, List } from "lucide-react";
+import { Inbox } from "lucide-react";
 import type { GalleryInfo } from "../../lib/types";
 import { GalleryCard, GalleryCardSkeleton } from "./gallery-card";
 import { EmptyState } from "../ui/empty-state";
@@ -49,7 +49,6 @@ export function GalleryGrid({
 }: GalleryGridProps) {
   const t = useT();
   const view = useSettings((s) => s.settings.galleryView);
-  const updateSettings = useSettings((s) => s.update);
   const scale = useSettings((s) => s.settings.displayScale);
   const density = useSettings((s) => s.settings.density);
   const gap = density === "compact" ? 12 : 20;
@@ -101,6 +100,10 @@ export function GalleryGrid({
       saveScroll();
     };
   }, [saveScroll]);
+
+  useEffect(() => {
+    if (scrollRef.current) scrollRef.current.scrollTop = 0;
+  }, [view]);
 
   const onScroll = useCallback(() => {
     if (saveRafRef.current != null) return;
@@ -175,18 +178,6 @@ export function GalleryGrid({
 
   return (
     <div className={cn("flex min-h-0 flex-col", className)}>
-      <div className="flex shrink-0 items-center justify-end gap-1 border-b border-border px-4 py-1.5" role="group" aria-label={t("list.galleryView")}>
-        {(["thumbnail", "detail"] as const).map((mode) => (
-          <Button key={mode} variant={view === mode ? "subtle" : "ghost"} size="sm"
-            aria-pressed={view === mode} onClick={() => {
-              if (scrollRef.current) scrollRef.current.scrollTop = 0;
-              updateSettings({ galleryView: mode });
-            }} className="h-10 gap-1.5">
-            {mode === "thumbnail" ? <LayoutGrid size={15} /> : <List size={15} />}
-            {t(mode === "thumbnail" ? "list.thumbnailView" : "list.detailView")}
-          </Button>
-        ))}
-      </div>
     <div ref={scrollRef} onScroll={onScroll} data-grid-scroll className="min-h-0 flex-1 overflow-y-auto">
       {width > 0 && (
         <div

@@ -41,7 +41,7 @@ export function TagSection({
                     key={tag}
                     to={`/?search=${encodeURIComponent(`${group.namespace}:${tag.replace(/ /g, "_")}`)}`}
                     title={text ? tag : undefined}
-                    className="rounded-full border border-border bg-surface px-2.5 py-0.5 text-small text-muted-foreground transition-colors duration-150 hover:border-accent/40 hover:text-accent"
+                    className="app-control inline-flex items-center rounded-full border border-border bg-surface px-2.5 py-0.5 text-small text-muted-foreground transition-colors duration-150 hover:border-accent/40 hover:text-accent"
                   >
                     {text ?? tag}
                   </Link>

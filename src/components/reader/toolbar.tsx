@@ -54,7 +54,7 @@ export function ReaderToolbar({
 
   return (
     <div className="absolute inset-x-0 top-0 z-30 border-b border-border bg-background">
-      <div className="flex h-14 items-center gap-2 px-3">
+      <div className="flex min-h-14 items-center gap-2 px-3">
         <NavigationControls />
         <div className="min-w-0 flex-1">
           <div className="truncate text-base text-muted-foreground">{title}</div>
@@ -70,7 +70,7 @@ export function ReaderToolbar({
         </Tooltip>
         <Button variant="ghost" size="icon" className="min-h-[44px] min-w-[44px]" onClick={() => setHidden(true)} aria-label={t("reader.hideControls")}><ChevronUp size={18} /></Button>
       </div>
-      <div className="flex h-10 items-center gap-3 px-4 pb-2">
+      <div className="flex min-h-10 items-center gap-3 px-4 pb-2">
         <Button variant="ghost" size="icon" disabled={index === 0} onClick={() => onIndexChange(index - 1)} aria-label={t("reader.prevPage")}><ChevronLeft size={16} /></Button>
         <Slider className="min-w-0 flex-1" min={0} max={Math.max(pageCount - 1, 1)} value={shown}
           onChange={(e) => setScrub(Number(e.target.value))}

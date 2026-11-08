@@ -5,6 +5,7 @@ import { ArrowRightToLine, Filter, Image as ImageIcon, Info, Plus, Search, Slide
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { GalleryGrid } from "../components/gallery/gallery-grid";
+import { GalleryViewToggle } from "../components/gallery/view-toggle";
 import { QuotaBar } from "../components/gallery/quota-bar";
 import { AdvancedSearchSheet, CategorySheet } from "../components/search/filter-sheets";
 import { ImageSearchDialog, type ImageSearchResult } from "../components/search/image-search-dialog";
@@ -110,6 +111,9 @@ export function GalleryListPage({ mode }: { mode: ListMode }) {
   const [startPage, setStartPage] = useState(saved?.startPage ?? 0);
   const [jumpOpen, setJumpOpen] = useState(false);
   const [jumpValue, setJumpValue] = useState("1");
+  // The quick-search row costs a full band; with nothing saved it held only a
+  // label and an empty input, so it appears once there is something in it.
+  const [quickAdding, setQuickAdding] = useState(false);
   const searchRef = useRef<HTMLInputElement>(null);
   const autocomplete = useTagAutocomplete({
     query: searchInput,
@@ -302,6 +306,17 @@ export function GalleryListPage({ mode }: { mode: ListMode }) {
               </Button>
             </span>
           </Tooltip>}
+          {caps.query && quickEntries.length === 0 && !quickAdding && (
+            <Button
+              variant="outline"
+              size="md"
+              onClick={() => setQuickAdding(true)}
+              aria-label={t("list.addQuickAria")}
+            >
+              <Plus size={14} />
+            </Button>
+          )}
+          <GalleryViewToggle />
           {caps.query && (
           <Button
             variant={advActive ? "default" : "outline"}
@@ -316,7 +331,7 @@ export function GalleryListPage({ mode }: { mode: ListMode }) {
         </div>
 
         {/* quick search chips */}
-        {caps.query && (
+        {caps.query && (quickEntries.length > 0 || quickAdding) && (
         <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5">
           <span className="shrink-0 text-small text-faint-foreground">{t("list.quick")}</span>
           {quickEntries.map((q) => (

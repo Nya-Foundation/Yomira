@@ -14,7 +14,7 @@ import { useState } from "react";
 import { NewLabelDialog, RootDialog } from "../components/downloads/download-dialogs";
 import { DownloadRow } from "../components/downloads/download-row";
 import { Button } from "../components/ui/button";
-import { Dialog } from "../components/ui/dialog";
+import { ConfirmDialog, Dialog } from "../components/ui/dialog";
 import { EmptyState } from "../components/ui/empty-state";
 import { ErrorState } from "../components/ui/error-state";
 import { FilterChip } from "../components/ui/filter-chip";
@@ -60,6 +60,7 @@ export function DownloadsPage() {
   const [batchBusy, setBatchBusy] = useState(false);
   const [batchRemoveOpen, setBatchRemoveOpen] = useState(false);
   const [batchDeleteFiles, setBatchDeleteFiles] = useState(false);
+  const [labelToDelete, setLabelToDelete] = useState<string | null>(null);
 
   const downloadsQuery = useQuery({
     queryKey: ["downloads"],
@@ -198,9 +199,9 @@ export function DownloadsPage() {
                 <span key={label} className="group/chip flex shrink-0 items-center">
                   <FilterChip active={labelFilter === label} onClick={() => setLabelFilter(label)} label={label} />
                   <button
-                    onClick={() => deleteLabelMutation.mutate(label)}
+                    onClick={() => setLabelToDelete(label)}
                     aria-label={t("downloads.labelDelete", { name: label })}
-                    className="rounded-full p-0.5 text-faint-foreground opacity-0 transition-opacity hover:text-danger group-hover/chip:opacity-100"
+                    className="ml-1 rounded-full p-0.5 text-faint-foreground opacity-0 transition-opacity hover:text-danger group-hover/chip:opacity-100"
                   >
                     <X size={11} />
                   </button>
@@ -381,6 +382,22 @@ export function DownloadsPage() {
         current={rootQuery.data ?? ""}
         pending={setRootMutation.isPending}
         onSubmit={(path) => setRootMutation.mutate(path)}
+      />
+
+      {/* deleting a label also strips it from every entry carrying it */}
+      <ConfirmDialog
+        open={labelToDelete !== null}
+        onOpenChange={(next) => !next && setLabelToDelete(null)}
+        title={t("downloads.labelDeleteTitle")}
+        description={t("downloads.labelDeleteDesc", {
+          name: labelToDelete ?? "",
+          n: all.filter((d) => d.label === labelToDelete).length,
+        })}
+        confirmLabel={t("common.delete")}
+        onConfirm={() => {
+          if (labelToDelete !== null) deleteLabelMutation.mutate(labelToDelete);
+          setLabelToDelete(null);
+        }}
       />
 
       {/* batch remove confirm */}
