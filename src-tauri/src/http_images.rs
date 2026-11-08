@@ -126,12 +126,14 @@ impl RemoteResolver {
     }
 }
 
-/// Hosts the application will fetch from when the webview asks. Gallery
-/// thumbnails come from these; reader pages are resolved through the IPC
-/// commands instead. Keeping the list narrow is what stops the `/remote`
-/// route from being a way for any local process to make the app fetch an
-/// arbitrary URL carrying the user's session.
-const THUMB_HOSTS: [&str; 3] = ["ehgt.org", "e-hentai.org", "exhentai.org"];
+/// Hosts the application will fetch from when the webview asks, verified
+/// against live traffic by `thumbnail_hosts_on_the_live_site`: covers come
+/// from `ehgt.org`, and preview strips from Hentai@Home nodes, whose
+/// subdomains are generated per node and so can only be matched by suffix.
+/// Reader pages are resolved through the IPC commands instead. Keeping this
+/// narrow is what stops the `/remote` route from being a way for any local
+/// process to make the app fetch an arbitrary URL.
+const THUMB_HOSTS: [&str; 4] = ["ehgt.org", "hath.network", "e-hentai.org", "exhentai.org"];
 
 /// Is `url` an `https` URL on an allowlisted thumbnail host? The host is the
 /// authority's last `@`-separated segment, so credentials cannot disguise it.

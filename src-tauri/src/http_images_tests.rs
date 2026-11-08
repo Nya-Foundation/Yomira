@@ -302,6 +302,9 @@ fn thumb_allowlist_rejects_disguised_and_plaintext_hosts() {
         "https://ehgt.org/t/00/ab/cover.webp",
         "https://s.exhentai.org/t/x.jpg",
         "https://e-hentai.org/t/x.jpg",
+        // Preview strips: the H@H subdomain differs per node.
+        "https://praogxqcch.hath.network/cm/abc/1-def/x.jpg",
+        "https://zzzzzzzzzz.hath.network/cm/abc/1-def/x.jpg",
     ] {
         assert!(is_allowed_thumb_url(url), "{url}");
     }
@@ -311,6 +314,8 @@ fn thumb_allowlist_rejects_disguised_and_plaintext_hosts() {
         // Suffix games.
         "https://ehgt.org.evil.example/x.jpg",
         "https://notehgt.org/x.jpg",
+        "https://hath.network.evil.example/x.jpg",
+        "https://nothath.network/x.jpg",
         // Plaintext and non-http schemes.
         "http://ehgt.org/x.jpg",
         "file:///etc/passwd",
@@ -401,4 +406,91 @@ fn server_resolves_remote_thumbnails_through_the_application() {
     );
 
     std::fs::remove_dir_all(&dir).ok();
+}
+
+/// Live check against the real site, ignored by default so CI never runs it:
+///
+/// ```sh
+/// cargo test --manifest-path src-tauri/Cargo.toml \
+///   thumbnail_hosts_on_the_live_site -- --ignored --nocapture
+/// ```
+///
+/// Confirms [`is_allowed_thumb_url`] actually covers the hosts e-hentai
+/// serves gallery and preview thumbnails from — the one claim in the image
+/// path that only real traffic can settle. Anonymous, Non-H only, two HTML
+/// requests, and it reads nothing but URL hosts: no image bytes are fetched
+/// and no gallery titles are printed.
+#[tokio::test]
+#[ignore]
+async fn thumbnail_hosts_on_the_live_site() {
+    use crate::core::models::{category, ListUrlBuilder};
+    use crate::core::{ClientConfig, EhClient, Site};
+    use std::collections::BTreeMap;
+
+    let client = EhClient::with_defaults(ClientConfig {
+        site: Site::E,
+        ..Default::default()
+    })
+    .expect("client");
+
+    let mut builder = ListUrlBuilder::new();
+    builder.category = category::NON_H;
+    let list_url = builder.build(Site::E);
+    let list = client
+        .get_gallery_list(&list_url)
+        .await
+        .expect("live gallery list");
+    assert!(!list.galleries.is_empty(), "no galleries parsed");
+
+    let mut hosts: BTreeMap<String, (usize, bool)> = BTreeMap::new();
+    let note = |url: &str, hosts: &mut BTreeMap<String, (usize, bool)>| {
+        let host = url
+            .strip_prefix("https://")
+            .or_else(|| url.strip_prefix("http://"))
+            .unwrap_or(url)
+            .split(['/', '?', '#'])
+            .next()
+            .unwrap_or_default()
+            .to_string();
+        let entry = hosts.entry(host).or_insert((0, is_allowed_thumb_url(url)));
+        entry.0 += 1;
+    };
+
+    for gallery in &list.galleries {
+        note(&gallery.thumb, &mut hosts);
+    }
+    let list_count = list.galleries.len();
+
+    // One detail page, for preview thumbnails (a different URL shape).
+    let first = &list.galleries[0];
+    let detail = client
+        .get_gallery_detail(first.gid, &first.token)
+        .await
+        .expect("live gallery detail");
+    let mut preview_count = 0;
+    for set in detail.preview_sets.iter() {
+        for row in &set.rows {
+            note(&row.url, &mut hosts);
+            preview_count += 1;
+        }
+    }
+
+    println!("\n--- live thumbnail hosts ({list_count} list, {preview_count} preview) ---");
+    let mut rejected = Vec::new();
+    for (host, (count, allowed)) in &hosts {
+        println!(
+            "  {:<34} x{:<4} {}",
+            host,
+            count,
+            if *allowed { "allowed" } else { "REJECTED" }
+        );
+        if !*allowed {
+            rejected.push(host.clone());
+        }
+    }
+    println!();
+    assert!(
+        rejected.is_empty(),
+        "hosts the allowlist would 404: {rejected:?}"
+    );
 }
