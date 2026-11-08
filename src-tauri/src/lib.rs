@@ -7,6 +7,8 @@
 //!   60 s and on `RunEvent::ExitRequested`.
 //! * One shared `Arc<EhClient>` serves the reader and the download workers,
 //!   so the site request throttle applies to the app as a whole.
+//! * Gallery thumbnails are fetched by a task here on behalf of the loopback
+//!   image server, which has its own runtime and cannot drive the client.
 //! * App data lives in `app_config_dir()/exviewer.db`, owned by rusqlite.
 //!   Frontend access goes through typed commands; migrations run in `Db::open`.
 
@@ -27,8 +29,11 @@ use tauri::Manager;
 use app_state::{AppState, NetworkConfig};
 use core::{ClientConfig, EhClient, EhCookieStore, InMemoryCookieStore};
 use download::{DownloadManager, EhPageSource, PageSource};
+use http_images::{RemoteRequest, RemoteResolver};
 
-fn build_state(app: &tauri::App) -> Result<AppState, Box<dyn std::error::Error>> {
+type Built = (AppState, tokio::sync::mpsc::Receiver<RemoteRequest>);
+
+fn build_state(app: &tauri::App) -> Result<Built, Box<dyn std::error::Error>> {
     let config_dir = app.path().app_config_dir()?;
     let data_dir = app.path().app_data_dir()?;
     std::fs::create_dir_all(&config_dir)?;
@@ -65,12 +70,16 @@ fn build_state(app: &tauri::App) -> Result<AppState, Box<dyn std::error::Error>>
     // thread + runtime, independent of the app's.
     let cache_dir = data_dir.join("image_cache");
     let local_images = http_images::LocalImages::default();
-    let image_server_port = http_images::spawn_server(cache_dir.clone(), local_images.clone())?;
+    // The server resolves gallery thumbnails by asking the application
+    // runtime, which owns the client (see `RemoteResolver`).
+    let (resolver, remote_requests) = RemoteResolver::channel();
+    let image_server_port =
+        http_images::spawn_server(cache_dir.clone(), local_images.clone(), resolver)?;
 
-    let image_cache = image_cache::ImageCache::open(
+    let image_cache = Arc::new(image_cache::ImageCache::open(
         cache_dir,
         network.image_cache_size_mb.saturating_mul(1024 * 1024),
-    )?;
+    )?);
 
     // Tag-translation database: load any usable on-disk copy now; the
     // weekly re-check runs fire-and-forget below.
@@ -88,20 +97,23 @@ fn build_state(app: &tauri::App) -> Result<AppState, Box<dyn std::error::Error>>
         download_source,
     )?;
 
-    Ok(AppState {
-        client,
-        cookie_store,
-        hosts,
-        db,
-        image_cache,
-        image_server_port,
-        local_images,
-        cookies_path,
-        tag_db,
-        downloads,
-        signin_tx: Mutex::new(None),
-        session_check: Mutex::new(None),
-    })
+    Ok((
+        AppState {
+            client,
+            cookie_store,
+            hosts,
+            db,
+            image_cache,
+            image_server_port,
+            local_images,
+            cookies_path,
+            tag_db,
+            downloads,
+            signin_tx: Mutex::new(None),
+            session_check: Mutex::new(None),
+        },
+        remote_requests,
+    ))
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -121,7 +133,26 @@ pub fn run() {
         }));
     builder
         .setup(|app| {
-            let state = build_state(app)?;
+            let (state, mut remote_requests) = build_state(app)?;
+            // Remote thumbnails: the image server forwards each URL here,
+            // where the client's runtime lives. One task per request so a
+            // slow host cannot stall the rest; EhClient already collapses
+            // identical in-flight fetches.
+            let image_client = state.client.clone();
+            let thumb_cache = state.image_cache.clone();
+            tauri::async_runtime::spawn(async move {
+                while let Some((url, reply)) = remote_requests.recv().await {
+                    let client = image_client.clone();
+                    let cache = thumb_cache.clone();
+                    tauri::async_runtime::spawn(async move {
+                        let path = image_cache::ensure_cached(&client, &cache, &url).await;
+                        if let Err(e) = &path {
+                            eprintln!("[image] {url}: {e}");
+                        }
+                        let _ = reply.send(path.ok());
+                    });
+                }
+            });
             // Periodic cookie persistence (shutdown persistence hooks into
             // RunEvent::ExitRequested below). Tauri's own runtime is used
             // because `setup` runs outside Tokio's reactor context.

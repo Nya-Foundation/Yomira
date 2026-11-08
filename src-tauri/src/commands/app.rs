@@ -9,17 +9,13 @@ use crate::app_state::{AppState, NetworkConfig};
 use crate::core::error::EhError;
 use crate::core::models::GalleryInfo;
 use crate::db::{BlacklistEntry, HistoryEntry, QuickSearchEntry};
-use crate::image_cache;
 
+/// Base URL of the loopback image server. The webview composes image URLs
+/// from it, so displaying a thumbnail costs no IPC and `<img loading="lazy">`
+/// keeps its meaning; the server fetches and caches on first request.
 #[tauri::command]
-pub async fn get_image(state: State<'_, AppState>, url: String) -> Result<String, EhError> {
-    image_cache::get_image(
-        &state.client,
-        &state.image_cache,
-        state.image_server_port,
-        &url,
-    )
-    .await
+pub fn image_base_url(state: State<'_, AppState>) -> String {
+    format!("http://127.0.0.1:{}", state.image_server_port)
 }
 
 // ---------------------------------------------------------------------------

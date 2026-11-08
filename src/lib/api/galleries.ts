@@ -84,11 +84,6 @@ export async function getComments(gid: number, token: string, page: number): Pro
   return invokeOrThrow("get_comments", { gid, token, page });
 }
 
-export async function getImage(url: string): Promise<string> {
-  if (!isTauri()) return (await loadMock()).mock.getImage(url);
-  return invokeOrThrow("get_image", { url });
-}
-
 export async function toggleFavorite(
   gid: number,
   token: string,

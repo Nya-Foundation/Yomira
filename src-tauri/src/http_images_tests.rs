@@ -181,7 +181,12 @@ fn server_serves_cache_dir_only() {
     std::fs::write(dir.join("0123456789abcdef.png"), b"PNGDATA").unwrap();
     std::fs::write(dir.join("secret.txt"), b"TOPSECRET").unwrap();
 
-    let port = spawn_server(dir.clone(), LocalImages::default()).unwrap();
+    let port = spawn_server(
+        dir.clone(),
+        LocalImages::default(),
+        RemoteResolver::disconnected(),
+    )
+    .unwrap();
 
     // One request per connection, Connection: close → the server closes
     // after responding (read_to_end terminates).
@@ -239,7 +244,12 @@ fn server_keeps_connections_alive() {
     std::fs::write(dir.join("0123456789abcdef.png"), b"PNGDATA").unwrap();
     std::fs::write(dir.join("ffffffffffffffff.jpg"), b"JPEGDATA").unwrap();
 
-    let port = spawn_server(dir.clone(), LocalImages::default()).unwrap();
+    let port = spawn_server(
+        dir.clone(),
+        LocalImages::default(),
+        RemoteResolver::disconnected(),
+    )
+    .unwrap();
     let mut stream = std::net::TcpStream::connect(("127.0.0.1", port)).unwrap();
     use std::io::Write;
     stream
@@ -282,6 +292,113 @@ fn server_keeps_connections_alive() {
     use std::io::Read;
     let mut eof = [0u8; 1];
     assert_eq!(stream.read(&mut eof).unwrap(), 0);
+
+    std::fs::remove_dir_all(&dir).ok();
+}
+
+#[test]
+fn thumb_allowlist_rejects_disguised_and_plaintext_hosts() {
+    for url in [
+        "https://ehgt.org/t/00/ab/cover.webp",
+        "https://s.exhentai.org/t/x.jpg",
+        "https://e-hentai.org/t/x.jpg",
+    ] {
+        assert!(is_allowed_thumb_url(url), "{url}");
+    }
+    for url in [
+        // Credentials must not disguise the real authority.
+        "https://ehgt.org@evil.example/x.jpg",
+        // Suffix games.
+        "https://ehgt.org.evil.example/x.jpg",
+        "https://notehgt.org/x.jpg",
+        // Plaintext and non-http schemes.
+        "http://ehgt.org/x.jpg",
+        "file:///etc/passwd",
+        "https://127.0.0.1/x.jpg",
+        // The site's own pages are not thumbnails.
+        "https://forums.e-hentai.org.evil.example/x",
+        "",
+    ] {
+        assert!(!is_allowed_thumb_url(url), "{url}");
+    }
+    // A subdomain of an allowed host is allowed.
+    assert!(is_allowed_thumb_url("https://ULTRA.ehgt.org/x.jpg"));
+}
+
+#[test]
+fn percent_decode_round_trips_encoded_urls_and_rejects_bad_escapes() {
+    assert_eq!(
+        percent_decode("https%3A%2F%2Fehgt.org%2Ft%2Fa%20b.webp").as_deref(),
+        Some("https://ehgt.org/t/a b.webp")
+    );
+    // `+` is a literal, not a space.
+    assert_eq!(percent_decode("a+b").as_deref(), Some("a+b"));
+    assert_eq!(percent_decode("%zz"), None);
+    assert_eq!(percent_decode("%4"), None);
+}
+
+/// The remote route hands the URL to the application runtime and serves the
+/// cache entry that comes back; hosts outside the allowlist never get there.
+#[test]
+fn server_resolves_remote_thumbnails_through_the_application() {
+    let dir = std::env::temp_dir().join(format!(
+        "exviewer-http-remote-test-{}-{}",
+        std::process::id(),
+        chrono::Utc::now().timestamp_nanos_opt().unwrap_or_default()
+    ));
+    std::fs::create_dir_all(&dir).unwrap();
+
+    let (resolver, mut requests) = RemoteResolver::channel();
+    let asked = std::sync::Arc::new(std::sync::Mutex::new(Vec::<String>::new()));
+    let seen = asked.clone();
+    let cache_dir = dir.clone();
+    // Stands in for the task in `lib.rs`: "fetch" the URL by writing a cache
+    // entry, then hand the server the file backing it.
+    std::thread::spawn(move || {
+        let rt = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .unwrap();
+        rt.block_on(async move {
+            while let Some((url, reply)) = requests.recv().await {
+                seen.lock().unwrap().push(url.clone());
+                let path = cache_dir.join("abcdef0123456789.webp");
+                std::fs::write(&path, format!("BYTES:{url}")).unwrap();
+                let _ = reply.send(Some(path));
+            }
+        });
+    });
+
+    let port = spawn_server(dir.clone(), LocalImages::default(), resolver).unwrap();
+    let get_close = |path: &str| {
+        let mut stream = std::net::TcpStream::connect(("127.0.0.1", port)).unwrap();
+        use std::io::{Read, Write};
+        stream
+            .write_all(
+                format!("GET {path} HTTP/1.1\r\nHost: x\r\nConnection: close\r\n\r\n").as_bytes(),
+            )
+            .unwrap();
+        let mut response = Vec::new();
+        stream.read_to_end(&mut response).unwrap();
+        String::from_utf8_lossy(&response).into_owned()
+    };
+
+    let ok = get_close("/remote?u=https%3A%2F%2Fehgt.org%2Ft%2F00%2Fab%2Fcover.webp");
+    assert!(ok.starts_with("HTTP/1.1 200 OK"), "{ok}");
+    assert!(ok.contains("Content-Type: image/webp"), "{ok}");
+    assert!(
+        ok.ends_with("BYTES:https://ehgt.org/t/00/ab/cover.webp"),
+        "{ok}"
+    );
+
+    let blocked = get_close("/remote?u=https%3A%2F%2Fevil.example%2Fx.png");
+    assert!(blocked.starts_with("HTTP/1.1 404"), "{blocked}");
+
+    assert_eq!(
+        asked.lock().unwrap().as_slice(),
+        ["https://ehgt.org/t/00/ab/cover.webp"],
+        "only allowlisted hosts reach the application"
+    );
 
     std::fs::remove_dir_all(&dir).ok();
 }

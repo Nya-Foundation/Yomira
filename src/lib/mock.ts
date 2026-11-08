@@ -752,11 +752,6 @@ export const mock = {
     localStorage.removeItem("exviewer.signed_in");
   },
 
-  async getImage(url: string): Promise<string> {
-    await delay(80, 200);
-    return url;
-  },
-
   // --- downloads ---
 
   async getDownloadedGallery(gid: number, token: string): Promise<DownloadedGallery | null> {

@@ -255,16 +255,16 @@ impl ImageCache {
     }
 }
 
-/// Fetch `url` through the client (with hotlink referer rules) and return a
-/// ready-to-display loopback URL, using the disk cache when possible.
-pub async fn get_image(
+/// Cache `url` if it is not already stored and return the file backing it.
+/// Must run on the runtime that owns the client: reqwest pools connections
+/// against the reactor that created them.
+pub async fn ensure_cached(
     client: &EhClient,
     cache: &ImageCache,
-    port: u16,
     url: &str,
-) -> Result<String, EhError> {
+) -> Result<PathBuf, EhError> {
     if let Some(path) = cache.get(url)? {
-        return Ok(serve_url(port, &path));
+        return Ok(path);
     }
     // Thumbs from ehgt need no referer; everything else (reader pages on the
     // exhentai image hosts) requires one or the server answers 403.
@@ -274,10 +274,20 @@ pub async fn get_image(
         Some(crate::core::client::url::referer(client.site()))
     };
     let (bytes, content_type) = client.get_image_bytes(url, referer).await?;
-    let path = cache
+    cache
         .store(url, &bytes, extension_for(url, &content_type))
-        .await?;
-    Ok(serve_url(port, &path))
+        .await
+}
+
+/// Fetch `url` through the client (with hotlink referer rules) and return a
+/// ready-to-display loopback URL, using the disk cache when possible.
+pub async fn get_image(
+    client: &EhClient,
+    cache: &ImageCache,
+    port: u16,
+    url: &str,
+) -> Result<String, EhError> {
+    Ok(serve_url(port, &ensure_cached(client, cache, url).await?))
 }
 
 #[cfg(test)]

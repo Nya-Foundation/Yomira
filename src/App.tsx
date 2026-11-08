@@ -30,6 +30,7 @@ const DownloadsPage = lazy(() =>
 const NewsPage = lazy(() => import("./pages/NewsPage").then((m) => ({ default: m.NewsPage })));
 import { useSettings, applyTheme, applyDensity, applyDisplayScale } from "./lib/settings";
 import { I18nProvider, useT } from "./lib/i18n";
+import { initImageSource } from "./lib/image-source";
 import { isEditableTarget } from "./lib/utils";
 import { useZoomShortcuts } from "./lib/use-zoom-shortcuts";
 
@@ -47,8 +48,10 @@ export default function App() {
   const density = useSettings((s) => s.settings.density);
   const displayScale = useSettings((s) => s.settings.displayScale);
 
+  const [imagesReady, setImagesReady] = useState(false);
   useEffect(() => {
     void initSettings();
+    void initImageSource().finally(() => setImagesReady(true));
   }, [initSettings]);
 
   useEffect(() => {
@@ -82,8 +85,9 @@ export default function App() {
   }, []);
 
   // Hold first paint until persisted settings (theme, density, display
-  // scale) are loaded so the saved scale applies without a flash.
-  if (!loaded) return null;
+  // scale) and the image server's address are known, so the saved scale
+  // applies without a flash and thumbnails resolve on the first render.
+  if (!loaded || !imagesReady) return null;
 
   return (
     <I18nProvider>

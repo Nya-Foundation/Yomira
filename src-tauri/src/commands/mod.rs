@@ -33,7 +33,7 @@ pub fn all() -> impl Fn(tauri::ipc::Invoke) -> bool + Send + Sync + 'static {
         auth::sign_in_with_webview,
         auth::sign_out,
         auth::__cookie_probe,
-        app::get_image,
+        app::image_base_url,
         app::get_history,
         app::record_history,
         app::delete_history,

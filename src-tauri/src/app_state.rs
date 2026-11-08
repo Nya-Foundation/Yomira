@@ -30,7 +30,9 @@ pub struct AppState {
     /// Hosts override table shared with the client's DNS resolver.
     pub hosts: Arc<RwLock<HashMap<String, Vec<IpAddr>>>>,
     pub db: Arc<Db>,
-    pub image_cache: ImageCache,
+    /// Shared with the task that answers the image server's remote-thumbnail
+    /// requests.
+    pub image_cache: Arc<ImageCache>,
     /// Port of the loopback image server ([`crate::http_images`]) serving
     /// `image_cache.dir()`; embedded into every image URL we hand out.
     pub image_server_port: u16,
