@@ -107,12 +107,8 @@ export function GalleryGrid({
     saveRafRef.current = requestAnimationFrame(() => {
       saveRafRef.current = null;
       saveScroll();
-      const el = scrollRef.current;
-      if (el && hasNextPage && !isFetchingNextPage && !error && el.scrollHeight - el.scrollTop - el.clientHeight < 600) {
-        onLoadMoreRef.current();
-      }
     });
-  }, [saveScroll, hasNextPage, isFetchingNextPage, error]);
+  }, [saveScroll]);
 
   const minCol = (width < 480 ? 140 : baseCol) * scale;
   const cols = view === "detail" ? 1 : Math.max(1, Math.floor((width - PAD_X * 2 + gap) / (minCol + gap)));

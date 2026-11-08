@@ -39,11 +39,17 @@ interface SavedListState {
   startPage: number;
 }
 
+const LIST_STATE = "exviewer.liststate";
+
+/** History entries per destination whose exact state is retained. Older ones
+ * fall back to the destination's last state rather than growing without end. */
+const LIST_STATE_LIMIT = 12;
+
 /** Per-mode list state (search text, filters, jump target) so navigating
  * into a gallery/reader and back restores the exact previous state. */
 function loadListState(mode: string, entry: string): SavedListState | null {
   try {
-    const raw = sessionStorage.getItem(`exviewer.liststate.${mode}.${entry}`) ?? sessionStorage.getItem(`exviewer.liststate.${mode}`);
+    const raw = sessionStorage.getItem(`${LIST_STATE}.${mode}.${entry}`) ?? sessionStorage.getItem(`${LIST_STATE}.${mode}`);
     if (!raw) return null;
     const parsed = JSON.parse(raw) as Partial<SavedListState>;
     if (typeof parsed.searchInput !== "string" || typeof parsed.params !== "object" || parsed.params === null) {
@@ -61,8 +67,23 @@ function loadListState(mode: string, entry: string): SavedListState | null {
 
 function saveListState(mode: string, entry: string, state: SavedListState) {
   try {
-    sessionStorage.setItem(`exviewer.liststate.${mode}`, JSON.stringify(state));
-    sessionStorage.setItem(`exviewer.liststate.${mode}.${entry}`, JSON.stringify(state));
+    const blob = JSON.stringify(state);
+    sessionStorage.setItem(`${LIST_STATE}.${mode}`, blob);
+    sessionStorage.setItem(`${LIST_STATE}.${mode}.${entry}`, blob);
+
+    const indexKey = `${LIST_STATE}.${mode}:index`;
+    let prior: string[] = [];
+    try {
+      const raw: unknown = JSON.parse(sessionStorage.getItem(indexKey) ?? "[]");
+      if (Array.isArray(raw)) prior = raw.filter((id): id is string => typeof id === "string");
+    } catch {
+      /* unreadable index — rebuild it from this entry */
+    }
+    const kept = [entry, ...prior.filter((id) => id !== entry)];
+    for (const stale of kept.splice(LIST_STATE_LIMIT)) {
+      sessionStorage.removeItem(`${LIST_STATE}.${mode}.${stale}`);
+    }
+    sessionStorage.setItem(indexKey, JSON.stringify(kept));
   } catch {
     /* storage full or unavailable — state restore is best-effort */
   }
