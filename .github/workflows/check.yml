@@ -38,6 +38,8 @@ jobs:
         run: |
           bunx playwright install --with-deps chromium
           bun run test:e2e
+      - name: Content Security Policy
+        run: bun run check:csp
       - run: cargo fmt --manifest-path src-tauri/Cargo.toml --check
       - run: cargo clippy --locked --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings
       - run: cargo test --locked --manifest-path src-tauri/Cargo.toml

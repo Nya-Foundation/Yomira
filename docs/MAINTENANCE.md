@@ -47,9 +47,15 @@ traces do not belong in Git. Reproducible profiling summaries under
 ## Verification
 
 CI runs TypeScript, frontend unit and browser tests, release-tooling tests,
-Rust formatting, Clippy and Rust tests. Platform jobs compile installable
-bundles. These do not prove live-site compatibility or physical-device behavior.
-Use synthetic regression fixtures and record native manual checks separately.
+the Content Security Policy check, Rust formatting, Clippy and Rust tests.
+Platform jobs compile installable bundles. These do not prove live-site
+compatibility or physical-device behavior. Use synthetic regression fixtures
+and record native manual checks separately.
+
+`bun run check:csp` serves the production build with the configured policy as
+a real response header and drives it in Chromium, failing on any violation or
+blank screen. Chromium is WebView2's engine; WebKitGTK and WKWebView still
+need a packaged smoke test when the policy changes.
 
 Performance profiling is separate from correctness gates because host load
 affects timing. See [PERFORMANCE.md](PERFORMANCE.md) for the fixed workload

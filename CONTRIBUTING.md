@@ -19,6 +19,7 @@ bun run test:unit
 bun run test:release
 bunx playwright install chromium
 bun run test:e2e
+bun run check:csp
 cargo fmt --manifest-path src-tauri/Cargo.toml --check
 cargo clippy --locked --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings
 cargo test --locked --manifest-path src-tauri/Cargo.toml

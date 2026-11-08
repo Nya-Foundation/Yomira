@@ -20,7 +20,8 @@
     "release:plan": "node scripts/release/plan.mjs",
     "version:sync": "node scripts/release/version.mjs",
     "test:release": "node --test tests/release.test.mjs",
-    "check:repo": "node scripts/check-repository.mjs"
+    "check:repo": "node scripts/check-repository.mjs",
+    "check:csp": "node scripts/check-csp.mjs"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.102.8",
