@@ -86,7 +86,7 @@ function OnlineFavorites({ slot, sort }: { slot: number | null; sort: FavoriteSo
       scrollKey={`favorites|${slot ?? "all"}|${sort}`}
       galleries={items}
       loading={query.isLoading}
-      error={query.isError}
+      error={query.error}
       onRetry={() => void (query.isFetchNextPageError ? query.fetchNextPage() : query.refetch())}
       hasNextPage={query.hasNextPage ?? false}
       isFetchingNextPage={query.isFetchingNextPage}

@@ -4,11 +4,12 @@ import { Inbox } from "lucide-react";
 import type { GalleryInfo } from "../../lib/types";
 import { GalleryCard, GalleryCardSkeleton } from "./gallery-card";
 import { EmptyState } from "../ui/empty-state";
+import { errorCopy, siteMessage } from "../../lib/api/errors";
 import { ErrorState } from "../ui/error-state";
 import { Spinner } from "../ui/spinner";
 import { useT } from "../../lib/i18n";
 import { useSettings } from "../../lib/settings";
-import { Button } from "../ui/button";
+import { Button, GhostLink } from "../ui/button";
 import { cn } from "../../lib/utils";
 
 const PAD_X = 16;
@@ -158,7 +159,17 @@ export function GalleryGrid({
   if (error && !loading && galleries.length === 0) {
     return (
       <div className={cn("flex overflow-y-auto p-4", className)}>
-        <ErrorState description={t("list.errorDesc")} onRetry={onRetry} />
+        <ErrorState
+          description={siteMessage(error) ?? t(errorCopy(error).desc)}
+          onRetry={onRetry}
+          action={
+            errorCopy(error).action === "offline" ? (
+              <GhostLink to="/downloads">{t("nav.downloads")}</GhostLink>
+            ) : errorCopy(error).action === "signin" ? (
+              <GhostLink to="/signin">{t("common.signIn")}</GhostLink>
+            ) : undefined
+          }
+        />
       </div>
     );
   }
@@ -224,7 +235,14 @@ export function GalleryGrid({
         </div>
       )}
 
-      {!!error && galleries.length > 0 && <div className="flex justify-center p-4"><Button variant="outline" onClick={onRetry}>{t("common.retry")}</Button></div>}
+      {!!error && galleries.length > 0 && (
+        <div className="flex flex-col items-center gap-2 p-4 text-center">
+          <p role="alert" className="max-w-sm text-small leading-5 text-muted-foreground">
+            {siteMessage(error) ?? t(errorCopy(error).desc)}
+          </p>
+          <Button variant="outline" onClick={onRetry}>{t("common.retry")}</Button>
+        </div>
+      )}
       <div data-load-more className="flex h-14 items-center justify-center">
         {hasNextPage && !loading && !error && (
           <Button variant="ghost" size="sm" onClick={onLoadMore} disabled={isFetchingNextPage} className="gap-2">

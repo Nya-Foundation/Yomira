@@ -425,7 +425,7 @@ export function GalleryListPage({ mode }: { mode: ListMode }) {
           scrollKey={scrollKey}
           galleries={galleries}
           loading={query.isLoading}
-          error={query.isError}
+          error={query.error}
           onRetry={() => void (query.isFetchNextPageError ? query.fetchNextPage() : query.refetch())}
           hasNextPage={query.hasNextPage ?? false}
           isFetchingNextPage={query.isFetchingNextPage}

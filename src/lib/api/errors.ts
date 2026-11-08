@@ -1,4 +1,6 @@
 import type { ApiErrorKind } from "../types";
+// Type-only: a value import would cycle through i18n -> settings -> transport.
+import type { TKey } from "../i18n";
 
 export class ApiError extends Error {
   code: number;
@@ -75,4 +77,43 @@ export function normalizeError(e: unknown): ApiError {
 
 export function isNotSignedIn(e: unknown): boolean {
   return e instanceof ApiError && e.kind === "notSignedIn";
+}
+
+/**
+ * What to tell a user about a failure, and what they can do about it.
+ *
+ * The backend distinguishes eleven kinds of failure and the interface used to
+ * collapse all of them into "could not be loaded" with a Retry button — which
+ * is wrong advice for a quota error, useless for an expired session, and
+ * silent about the downloaded galleries that are still readable offline.
+ *
+ * `eh` is the one kind whose message is the site's own words, so it passes
+ * through; every other message is internal Rust prose and is replaced here.
+ */
+export function errorCopy(e: unknown): { desc: TKey; action?: "signin" | "offline" } {
+  const kind = e instanceof ApiError ? e.kind : undefined;
+  switch (kind) {
+    case "network":
+      return { desc: "error.network", action: "offline" };
+    case "notSignedIn":
+      return { desc: "error.notSignedIn", action: "signin" };
+    case "cookie":
+      return { desc: "error.cookie", action: "signin" };
+    case "image509":
+    case "bandwidthExceeded":
+      return { desc: "error.quota" };
+    case "db":
+      return { desc: "error.db" };
+    case "pageUnavailable":
+      return { desc: "error.pageUnavailable" };
+    case "cancelled":
+      return { desc: "error.cancelled" };
+    default:
+      return { desc: "error.site" };
+  }
+}
+
+/** The site's own message, when it sent one worth showing. */
+export function siteMessage(e: unknown): string | null {
+  return e instanceof ApiError && e.kind === "eh" && e.message ? e.message : null;
 }

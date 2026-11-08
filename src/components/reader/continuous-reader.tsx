@@ -1,6 +1,7 @@
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useT } from "../../lib/i18n";
+import { useSettings } from "../../lib/settings";
 import { cn } from "../../lib/utils";
 import { steppedZoom, useReaderZoom, type ZoomAction } from "../../lib/use-zoom-shortcuts";
 import { Spinner } from "../ui/spinner";
@@ -25,6 +26,18 @@ export function ContinuousReader({
 }) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(0);
+  const preload = useSettings((s) => s.settings.readerPreloadCount);
+  /**
+   * A fling passes dozens of pages, and every one the virtualizer mounts would
+   * claim a slot in the 500ms-spaced request queue — so the page the reader
+   * actually stops on waits behind pages nobody will look at. Only pages near
+   * a settled position are fetched.
+   */
+  const [settled, setSettled] = useState(index);
+  useEffect(() => {
+    const id = window.setTimeout(() => setSettled(index), 150);
+    return () => window.clearTimeout(id);
+  }, [index]);
   const [zoom, setZoom] = useState(1);
   useReaderZoom(useCallback((action: ZoomAction) => setZoom(value => steppedZoom(value, action, 0.5, 3)), []));
 
@@ -98,6 +111,7 @@ export function ContinuousReader({
               token={token}
               index={row.index}
               width={pageW}
+              enabled={Math.abs(row.index - settled) <= Math.max(1, preload)}
             />
           </div>
         ))}
@@ -111,14 +125,16 @@ function ContinuousPage({
   token,
   index,
   width,
+  enabled,
 }: {
   gid: number;
   token: string;
   index: number;
+  enabled: boolean;
   width: number;
 }) {
   const t = useT();
-  const { query: pageQuery, retry } = usePageQuery(gid, token, index, true);
+  const { query: pageQuery, retry } = usePageQuery(gid, token, index, enabled);
   return (
     <div
       className="mb-6 flex items-center justify-center bg-surface"

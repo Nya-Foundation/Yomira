@@ -1,6 +1,6 @@
 import { useEffect, useId, useMemo, useState, type ReactNode, type RefObject } from "react";
 import { suggestTags, tagDbStatus } from "../../lib/api";
-import { NAMESPACE_COLORS } from "../../lib/categories";
+import { useBadgeColors } from "../../lib/categories";
 import { useDebounced } from "../../lib/use-debounced";
 import type { TagSuggestion } from "../../lib/types";
 import { useT } from "../../lib/i18n";
@@ -30,6 +30,7 @@ export function useTagAutocomplete(opts: {
 }): TagAutocomplete {
   const { query, inputRef, onApply } = opts;
   const t = useT();
+  const badge = useBadgeColors();
   const [focused, setFocused] = useState(false);
   const [closed, setClosed] = useState(false);
   const [active, setActive] = useState(0);
@@ -118,7 +119,7 @@ export function useTagAutocomplete(opts: {
         </p>
       ) : (
         suggestions.map((s, i) => {
-          const color = NAMESPACE_COLORS[s.namespace] ?? NAMESPACE_COLORS.misc;
+          const color = badge.namespace(s.namespace);
           return (
             <button
               type="button"

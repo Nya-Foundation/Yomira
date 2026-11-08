@@ -1,6 +1,6 @@
 import { BookOpen, Pause, Play, Trash2 } from "lucide-react";
 import { Link } from "react-router-dom";
-import { CATEGORY_COLORS } from "../../lib/categories";
+import { useBadgeColors } from "../../lib/categories";
 import { useT, type TKey } from "../../lib/i18n";
 import { readProgress } from "../../lib/reading-progress";
 import type { DownloadEntry, DownloadState } from "../../lib/types";
@@ -54,7 +54,7 @@ export function DownloadRow({
   const readerPath = `/read/${d.gid}/${d.token}?source=download`;
   const savedPosition = readProgress(d.gid);
   const progress = d.pages > 0 ? Math.min(1, d.finishedPages / d.pages) : 0;
-  const categoryColor = CATEGORY_COLORS[d.category as keyof typeof CATEGORY_COLORS];
+  const categoryColor = useBadgeColors().category(d.category as Parameters<ReturnType<typeof useBadgeColors>["category"]>[0]);
 
   return (
     <div className="flex flex-wrap items-center gap-3 border-b border-border px-4 py-4">

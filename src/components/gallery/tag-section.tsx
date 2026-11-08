@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import type { TagGroup } from "../../lib/types";
-import { NAMESPACE_COLORS } from "../../lib/categories";
+import { useBadgeColors } from "../../lib/categories";
 import { useT } from "../../lib/i18n";
 
 /**
@@ -17,6 +17,7 @@ export function TagSection({
   translated: (namespace: string, name: string) => string | null;
 }) {
   const t = useT();
+  const badge = useBadgeColors();
   return (
     <section aria-label={t("detail.tags")} className="mt-8">
       <h3 className="mb-3 text-emphasis font-semibold tracking-tight">{t("detail.tags")}</h3>
@@ -30,7 +31,7 @@ export function TagSection({
                 <span
                   aria-hidden
                   className="h-1.5 w-1.5 shrink-0 rounded-full"
-                  style={{ backgroundColor: NAMESPACE_COLORS[group.namespace] ?? NAMESPACE_COLORS.misc }}
+                  style={{ backgroundColor: badge.namespace(group.namespace) }}
                 />
                 {group.namespace}
               </span>
