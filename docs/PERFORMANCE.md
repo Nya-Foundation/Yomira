@@ -1,5 +1,9 @@
 # Performance baseline and cleanup — 2026-09-07
 
+This is the record of one measurement pass, kept for its method and its
+numbers at that commit. Nothing here is re-measured as the code changes; treat
+the figures as a baseline to reproduce against, not as current performance.
+
 The first pass measured the production renderer with deterministic IPC fixtures and the actual Rust download-storage implementation. It found avoidable startup payload and recurring storage work, while the measured scrolling and page-turn flows remained responsive. The maintainability changes are described in [MAINTENANCE.md](MAINTENANCE.md).
 
 ## Measured results
