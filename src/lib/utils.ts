@@ -1,4 +1,5 @@
 import { clsx, type ClassValue } from "clsx";
+import { currentLocale, t } from "./i18n";
 import { extendTailwindMerge } from "tailwind-merge";
 
 // Custom typography tokens are font sizes, not text colors. Without this,
@@ -28,14 +29,20 @@ export function formatBytes(bytes: number): string {
   return `${value.toFixed(1)} ${unit}`;
 }
 
+/**
+ * Posted/commented times as read by a person. Callers render this inside
+ * components that subscribe through `useT()`, so switching language
+ * re-renders them in the new one.
+ */
 export function formatRelativeTime(epochSeconds: number): string {
   const diff = Date.now() / 1000 - epochSeconds;
-  if (diff < 60) return "just now";
-  if (diff < 3600) return `${Math.floor(diff / 60)} min ago`;
-  if (diff < 86400) return `${Math.floor(diff / 3600)} h ago`;
-  if (diff < 86400 * 30) return `${Math.floor(diff / 86400)} d ago`;
-  const date = new Date(epochSeconds * 1000);
-  return date.toLocaleDateString();
+  if (diff < 60) return t("time.justNow");
+  if (diff < 3600) return t("time.minutes", { n: Math.floor(diff / 60) });
+  if (diff < 86400) return t("time.hours", { n: Math.floor(diff / 3600) });
+  if (diff < 86400 * 30) return t("time.days", { n: Math.floor(diff / 86400) });
+  // Older than a month: an absolute date, formatted for the chosen language
+  // rather than whatever the webview's own locale happens to be.
+  return new Date(epochSeconds * 1000).toLocaleDateString(currentLocale());
 }
 
 export function formatCount(n: number): string {

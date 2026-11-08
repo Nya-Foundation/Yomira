@@ -60,6 +60,10 @@ const en = {
 
   // common
   "common.retry": "Retry",
+  "time.justNow": "just now",
+  "time.minutes": "{n} min ago",
+  "time.hours": "{n} h ago",
+  "time.days": "{n} d ago",
   "common.errorTitle": "Something went wrong",
   "common.cancel": "Cancel",
   "common.confirm": "Confirm",
@@ -566,6 +570,10 @@ const zh: Record<TKey, string> = {
   "shortcuts.zoomReset": "重置缩放",
 
   "common.retry": "重试",
+  "time.justNow": "刚刚",
+  "time.minutes": "{n} 分钟前",
+  "time.hours": "{n} 小时前",
+  "time.days": "{n} 天前",
   "common.errorTitle": "出了点问题",
   "common.cancel": "取消",
   "common.confirm": "确定",
