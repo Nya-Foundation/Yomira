@@ -66,6 +66,7 @@ pub fn extension_for(url: &str, content_type: &str) -> &'static str {
         "png" => return "png",
         "gif" => return "gif",
         "webp" => return "webp",
+        "avif" => return "avif",
         _ => {}
     }
     if content_type.contains("png") {
@@ -74,6 +75,8 @@ pub fn extension_for(url: &str, content_type: &str) -> &'static str {
         "gif"
     } else if content_type.contains("webp") {
         "webp"
+    } else if content_type.contains("avif") {
+        "avif"
     } else {
         "jpg"
     }

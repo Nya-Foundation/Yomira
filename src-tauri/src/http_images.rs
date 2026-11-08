@@ -28,7 +28,7 @@
 //!   runtime, fully independent of the app's runtime; the resolved port
 //!   travels back through an mpsc channel.
 
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
 use std::path::{Path, PathBuf};
 use std::sync::{mpsc, Arc, RwLock};
 use std::time::Duration;
@@ -39,8 +39,21 @@ use tokio::net::{TcpListener, TcpStream};
 /// Saved pages have stable opaque names and are streamed from their original
 /// files. The webview cannot supply a filesystem path. Entries are re-created
 /// on demand after restart; nothing depends on a previous ephemeral port.
+#[derive(Default)]
+struct Registry {
+    entries: HashMap<String, (PathBuf, PathBuf)>,
+    /// Registration order, so the oldest entry can be dropped at the cap.
+    order: VecDeque<String>,
+}
+
 #[derive(Clone, Default)]
-pub struct LocalImages(Arc<RwLock<HashMap<String, (PathBuf, PathBuf)>>>);
+pub struct LocalImages(Arc<RwLock<Registry>>);
+
+/// Saved pages held in the registry at once. A long reading session would
+/// otherwise accumulate an entry per page for the life of the process.
+/// Names are derived from the path, so an evicted page re-registers to the
+/// same name on its next request.
+const MAX_LOCAL_IMAGES: usize = 4096;
 
 impl LocalImages {
     pub fn register(&self, gallery_dir: &Path, path: &Path) -> Option<String> {
@@ -62,12 +75,20 @@ impl LocalImages {
             crate::image_cache::cache_key(&path.to_string_lossy()),
             ext
         );
-        self.0.write().ok()?.insert(name.clone(), (dir, path));
+        let mut registry = self.0.write().ok()?;
+        if registry.entries.insert(name.clone(), (dir, path)).is_none() {
+            registry.order.push_back(name.clone());
+            while registry.order.len() > MAX_LOCAL_IMAGES {
+                if let Some(evicted) = registry.order.pop_front() {
+                    registry.entries.remove(&evicted);
+                }
+            }
+        }
         Some(name)
     }
 
     fn resolve(&self, name: &str) -> Option<PathBuf> {
-        let (dir, path) = self.0.read().ok()?.get(name)?.clone();
+        let (dir, path) = self.0.read().ok()?.entries.get(name)?.clone();
         // Revalidate if a folder/file was moved, removed or replaced by a link.
         let actual = path.canonicalize().ok()?;
         (actual == path && actual.parent()? == dir).then_some(path)
@@ -111,7 +132,7 @@ pub fn is_safe_file_name(name: &str) -> bool {
     let Some((key, ext)) = name.rsplit_once('.') else {
         return false;
     };
-    let ext_ok = matches!(ext, "jpg" | "png" | "gif" | "webp");
+    let ext_ok = matches!(ext, "jpg" | "png" | "gif" | "webp" | "avif");
     let key_ok = key.len() == 16
         && key
             .bytes()
