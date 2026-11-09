@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Skeleton } from "../components/ui/skeleton";
 import { Link } from "react-router-dom";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { Clock, Trash2 } from "lucide-react";
@@ -7,17 +8,19 @@ import { CachedImage } from "../components/ui/cached-image";
 import { EmptyState } from "../components/ui/empty-state";
 import { ErrorState } from "../components/ui/error-state";
 import { ConfirmDialog } from "../components/ui/dialog";
-import { Button } from "../components/ui/button";
+import { Button, GhostLink } from "../components/ui/button";
 import { useToastedMutation } from "../lib/use-toasted-mutation";
-import { useT } from "../lib/i18n";
+import { currentLocale, useT } from "../lib/i18n";
 
 function formatTime(ts: number): string {
   const d = new Date(ts);
   const today = new Date();
   const sameDay = d.toDateString() === today.toDateString();
+  // The chosen language, not whatever locale the webview itself reports.
+  const locale = currentLocale();
   return sameDay
-    ? d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })
-    : d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+    ? d.toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" })
+    : d.toLocaleDateString(locale, { month: "short", day: "numeric", year: "numeric" });
 }
 
 const HISTORY_PAGE_SIZE = 50;
@@ -51,18 +54,18 @@ export function HistoryPage() {
 
   if (query.isLoading) {
     return (
-      <div className="mx-auto w-full max-w-4xl p-4 pb-20 md:pb-4">
+      <div className="mx-auto w-full max-w-4xl p-4">
         <div className="mb-3 flex items-center justify-between">
-          <div className="h-3.5 w-20 animate-pulse rounded bg-surface-2" />
-          <div className="h-7 w-20 animate-pulse rounded-md bg-surface-2" />
+          <Skeleton className="h-3.5 w-20 rounded" />
+          <Skeleton className="h-7 w-20" />
         </div>
         <ul className="divide-y divide-border rounded-lg border border-border bg-surface">
           {Array.from({ length: 8 }, (_, i) => (
             <li key={i} className="flex items-center gap-3 p-2 pr-3">
-              <div className="h-14 w-11 shrink-0 animate-pulse rounded-md bg-surface-2" />
+              <Skeleton className="h-14 w-11 shrink-0" />
               <div className="min-w-0 flex-1 space-y-1.5">
-                <div className="h-4 w-2/3 animate-pulse rounded bg-surface-2" />
-                <div className="h-3 w-24 animate-pulse rounded bg-surface-2" />
+                <Skeleton className="h-4 w-2/3 rounded" />
+                <Skeleton className="h-3 w-24 rounded" />
               </div>
             </li>
           ))}
@@ -91,12 +94,7 @@ export function HistoryPage() {
           title={t("history.empty")}
           description={t("history.emptyDesc")}
           action={
-            <Link
-              to="/"
-              className="inline-flex h-8 items-center rounded-md border border-border px-3 text-small text-muted-foreground transition-colors hover:bg-surface-2 hover:text-foreground"
-            >
-              {t("history.start")}
-            </Link>
+            <GhostLink to="/">{t("history.start")}</GhostLink>
           }
           className="w-full max-w-md"
         />
@@ -108,9 +106,11 @@ export function HistoryPage() {
     <div className="mx-auto h-full max-w-4xl overflow-y-auto p-4">
       <div className="mb-3 flex items-center justify-between">
         <p className="font-mono text-caption text-faint-foreground tabular-nums">
-          {entries.length === 1
-            ? t("history.entryCount", { n: entries.length })
-            : t("history.entriesCount", { n: entries.length })}
+          {query.hasNextPage
+            ? t("history.entriesCountMore", { n: entries.length })
+            : entries.length === 1
+              ? t("history.entryCount", { n: entries.length })
+              : t("history.entriesCount", { n: entries.length })}
         </p>
         <Button variant="outline" size="sm" onClick={() => setConfirmClear(true)}>
           {t("history.clearAll")}

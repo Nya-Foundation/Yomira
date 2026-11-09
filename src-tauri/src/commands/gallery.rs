@@ -1,9 +1,8 @@
 //! Gallery-facing commands: lists, detail, previews, reader pages, comments,
 //! favorites, rating — the `src/lib/api.ts` contract.
 
-use std::sync::{Arc, LazyLock};
+use std::sync::Arc;
 
-use regex::Regex;
 use tauri::State;
 
 use crate::app_state::AppState;
@@ -430,29 +429,28 @@ pub struct FavoritesResponseDto {
     pub pages: u32,
 }
 
-/// Popup radio `value` attribute, tolerant of attribute order.
-static FAVCAT_RADIO_PATTERN: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r#"(?s)<input[^>]*name="favcat"[^>]*>"#).unwrap());
-static VALUE_PATTERN: LazyLock<Regex> = LazyLock::new(|| Regex::new("value=\"(\\d+)\"").unwrap());
+/// GET the addfav popup and parse the gallery's current favorite state.
+/// Shared by `toggle_favorite`, `get_favorite_note` and
+/// `modify_favorite_note`: one request answers both the checked collection
+/// slot and the stored note.
+pub(crate) async fn favorite_popup(
+    client: &crate::core::EhClient,
+    gid: u64,
+    token: &str,
+) -> Result<parser::FavoritePopup, EhError> {
+    let url = crate::core::client::url::add_favorites_url(client.site(), gid, token);
+    let body = client.get_string(&url, Some(&url)).await?;
+    Ok(parser::parse_favorite_popup(&body))
+}
 
-/// GET the addfav popup and read the currently checked category, if any.
+/// The checked collection slot alone, with the popup's errors flattened away
+/// (callers treat an unreachable popup as "not favorited", as before).
 async fn current_favorite_slot(
     client: &crate::core::EhClient,
     gid: u64,
     token: &str,
 ) -> Option<i32> {
-    let url = crate::core::client::url::add_favorites_url(client.site(), gid, token);
-    let body = client.get_string(&url, Some(&url)).await.ok()?;
-    for radio in FAVCAT_RADIO_PATTERN.captures_iter(&body) {
-        let tag = &radio[0];
-        if !tag.contains("checked") {
-            continue;
-        }
-        if let Some(m) = VALUE_PATTERN.captures(tag) {
-            return m[1].parse().ok();
-        }
-    }
-    None
+    favorite_popup(client, gid, token).await.ok()?.slot
 }
 
 #[tauri::command]

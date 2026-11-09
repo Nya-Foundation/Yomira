@@ -24,13 +24,8 @@ const bundleProfile: Plugin = {
 };
 
 // https://vite.dev/config/
-export default defineConfig(({ command, mode }) => ({
+export default defineConfig(({ mode }) => ({
   plugins: [react(), tailwindcss(), mode === "profile" && bundleProfile],
-
-  // Expose the session-cookie keys from .env (ipb_member_id, ipb_pass_hash,
-  // igneous) to the app so SignIn can pre-fill them; they are only ever used
-  // locally and are never sent anywhere except the sign-in command.
-  envPrefix: command === "serve" ? ["VITE_", "IPB_", "IGNEOUS"] : ["VITE_"],
 
   // Vite options tailored for Tauri development and only applied in `tauri dev` or `tauri build`
   //

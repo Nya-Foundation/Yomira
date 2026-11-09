@@ -1,5 +1,7 @@
 import { useEffect, useRef, type ReactNode } from "react";
 import { createPortal } from "react-dom";
+import { X } from "lucide-react";
+import { useT } from "../../lib/i18n";
 import { cn } from "../../lib/utils";
 
 /** Native modal supplies focus containment, background inertness and stacked Escape handling. */
@@ -62,5 +64,30 @@ export function Modal({ open, onOpenChange, label, className, children }: {
       {open && children}
     </dialog>,
     document.body,
+  );
+}
+
+/** Title and close button, shared by the dialog and the sheet. */
+export function ModalHeader({
+  title,
+  onClose,
+  className,
+}: {
+  title: ReactNode;
+  onClose: () => void;
+  className?: string;
+}) {
+  const t = useT();
+  return (
+    <div className={cn("flex items-center justify-between gap-3", className)}>
+      <h2 className="text-emphasis font-semibold tracking-tight">{title}</h2>
+      <button
+        onClick={onClose}
+        aria-label={t("common.close")}
+        className="flex size-9 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-surface-2 hover:text-foreground"
+      >
+        <X size={18} strokeWidth={1.75} />
+      </button>
+    </div>
   );
 }

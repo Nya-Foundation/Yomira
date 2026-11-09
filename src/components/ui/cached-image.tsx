@@ -1,15 +1,15 @@
-import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
 import { RotateCw } from "lucide-react";
-import { getImage } from "../../lib/api";
+import { imageSrc } from "../../lib/image-source";
 import { useT } from "../../lib/i18n";
 import { cn } from "../../lib/utils";
 
 /**
- * Image that resolves its `src` through the backend image cache. In the app,
- * `getImage` returns a loopback HTTP URL served from the Rust-side
- * cache; in the browser demo the (data-URL) mock passes through untouched.
- * The resolved URL mapping is cached app-wide by react-query, so galleries
- * rendering the same thumb more than once resolve only once.
+ * Image served through the backend's loopback image server. The `src` is
+ * derived from the remote URL with no IPC, so the browser keeps its own
+ * lazy-loading and request priorities and the backend fetches on first
+ * request. Failures offer a retry, which remounts the element; error
+ * responses are sent `no-store`, so the request actually repeats.
  */
 export function CachedImage({
   url,
@@ -27,18 +27,14 @@ export function CachedImage({
   referrerPolicy?: React.ImgHTMLAttributes<HTMLImageElement>["referrerPolicy"];
 }) {
   const t = useT();
-  const query = useQuery({
-    queryKey: ["image-url", url],
-    queryFn: () => getImage(url),
-    staleTime: Infinity,
-    retry: false,
-  });
+  const [attempt, setAttempt] = useState(0);
+  const [failed, setFailed] = useState<string | null>(null);
+  const [shown, setShown] = useState<string | null>(null);
 
-  if (query.isPending) {
-    return <div role="img" aria-label={alt} className={cn("animate-pulse bg-surface-2", className)} style={style} />;
-  }
+  const src = imageSrc(url);
+  const key = `${src ?? ""}#${attempt}`;
 
-  if (query.isError) {
+  if (src === null || failed === key) {
     return (
       <div
         role="img"
@@ -47,9 +43,12 @@ export function CachedImage({
         style={style}
       >
         <button
-          onClick={() => void query.refetch()}
+          onClick={() => {
+            setFailed(null);
+            setAttempt((n) => n + 1);
+          }}
           aria-label={t("image.retryAria", { name: alt || t("image.fallback") })}
-          title={query.error instanceof Error ? query.error.message : t("image.retryTitle")}
+          title={t("image.retryTitle")}
           className="rounded-full p-1.5 text-faint-foreground transition-colors hover:bg-surface hover:text-foreground"
         >
           <RotateCw size={15} strokeWidth={1.75} />
@@ -60,13 +59,16 @@ export function CachedImage({
 
   return (
     <img
-      src={query.data}
+      key={key}
+      src={src}
       alt={alt}
       loading={loading}
       decoding="async"
       draggable={false}
       referrerPolicy={referrerPolicy}
-      className={className}
+      onLoad={() => setShown(key)}
+      onError={() => setFailed(key)}
+      className={cn(shown === key ? undefined : "animate-pulse bg-surface-2", className)}
       style={style}
     />
   );

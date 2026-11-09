@@ -18,6 +18,10 @@ const BLACKLIST_TYPES: { value: string; labelKey: TKey }[] = [
 
 function BlockedContent() {
   const t = useT();
+  const typeLabel = (type: string) => {
+    const def = BLACKLIST_TYPES.find((x) => x.value === type);
+    return def ? t(def.labelKey) : type;
+  };
   const queryClient = useQueryClient();
   const [type, setType] = useState("title");
   const [content, setContent] = useState("");
@@ -94,7 +98,7 @@ function BlockedContent() {
           {entries.map((b: BlacklistEntry) => (
             <li key={b.id} className="group flex items-center gap-3 px-3 py-2">
               <span className="w-20 shrink-0 text-caption font-medium uppercase tracking-wide text-faint-foreground">
-                {b.type}
+                {typeLabel(b.type)}
               </span>
               <span className="min-w-0 flex-1 truncate font-mono text-small text-muted-foreground">
                 {b.content}

@@ -1,8 +1,9 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useCallback, useContext, useEffect, useState } from "react";
+import { useCallback, useContext, useEffect, useRef, useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import { useAppNavigation } from "../lib/app-navigation";
 import { ContinuousReader } from "../components/reader/continuous-reader";
+import { EndOfGalleryCard } from "../components/reader/end-card";
 import { OfflineContext } from "../components/reader/page-query";
 import { PagedReader } from "../components/reader/paged-reader";
 import { ReaderToolbar } from "../components/reader/toolbar";
@@ -36,9 +37,13 @@ function ReaderSession() {
   const [searchParams] = useSearchParams();
   const readerDirection = useSettings((s) => s.settings.readerDirection);
   const readerMode = useSettings((s) => s.settings.readerMode);
+  const readerFit = useSettings((s) => s.settings.readerFit);
   const updateSettings = useSettings((s) => s.update);
   const t = useT();
   const [controlsVisible, setControlsVisible] = useState(true);
+  const [atEnd, setAtEnd] = useState(false);
+  // 6rem was the old hard-coded guess; it is only the starting value now.
+  const [toolbarH, setToolbarH] = useState(84);
 
   const detailQuery = useQuery<DownloadedGallery | GalleryDetail | null>({
     queryKey: [offline ? "downloaded-gallery" : "gallery-detail", gidNum, token],
@@ -70,18 +75,29 @@ function ReaderSession() {
     if (pageCount > 0 && index < pageCount) saveProgress(gidNum, index);
   }, [gidNum, index, pageCount]);
 
+  // Read through a ref so `go` stays stable across page turns.
+  const indexRef = useRef(index);
+  indexRef.current = index;
   const go = useCallback(
     (delta: number) => {
+      if (delta > 0 && pageCount > 0 && indexRef.current >= pageCount - 1) {
+        setAtEnd(true);
+        return;
+      }
       setIndex((i) => Math.max(0, Math.min(i + delta, pageCount - 1 || 0)));
     },
     [pageCount],
   );
+
+  useEffect(() => setAtEnd(false), [index, gidNum]);
 
   // keyboard nav
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (document.querySelector("dialog[open]") || isEditableTarget(e.target) || e.ctrlKey || e.metaKey || e.altKey) return;
       if (e.key === " " && e.target instanceof Element && e.target.closest("button, a")) return;
+      // Continuous mode scrolls these itself.
+      if (readerMode === "continuous" && [" ", "PageDown", "PageUp"].includes(e.key)) return;
       if (e.key === "ArrowRight" || e.key === " " || e.key.toLowerCase() === "j") {
         e.preventDefault();
         go(e.key === "ArrowRight" && readerDirection === "rtl" ? -1 : 1);
@@ -106,7 +122,7 @@ function ReaderSession() {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [go, pageCount, back, readerDirection]);
+  }, [go, pageCount, back, readerDirection, readerMode]);
 
   if (detailQuery.isLoading) {
     return (
@@ -130,26 +146,41 @@ function ReaderSession() {
   return (
     <div className="relative flex h-full flex-col">
       <ReaderToolbar
+        onHeight={setToolbarH}
         hidden={!controlsVisible}
         setHidden={(hidden) => setControlsVisible(!hidden)}
         index={index}
         pageCount={pageCount}
         mode={readerMode}
         onModeChange={(m) => updateSettings({ readerMode: m })}
+        fit={readerFit}
+        onFitChange={(f) => updateSettings({ readerFit: f })}
         onIndexChange={(i) => setIndex(Math.max(0, Math.min(i, pageCount - 1)))}
         title={detailQuery.data?.title ?? ""}
         offlineStatus={offline && detailQuery.data && "availablePages" in detailQuery.data ? t("reader.offlineStatus", { a: detailQuery.data.availablePages.length, b: pageCount }) : undefined}
       />
       {readerMode === "paged" ? (
-        <PagedReader controlsVisible={controlsVisible} gid={gidNum} token={token} index={index} pageCount={pageCount} go={go} />
+        <PagedReader controlsVisible={controlsVisible} toolbarH={toolbarH} gid={gidNum} token={token} index={index} pageCount={pageCount} go={go} fit={readerFit} onToggleControls={() => setControlsVisible((v) => !v)} />
       ) : (
         <ContinuousReader
           controlsVisible={controlsVisible}
+          toolbarH={toolbarH}
           gid={gidNum}
           token={token}
           index={index}
           pageCount={pageCount}
           onIndexChange={setIndex}
+          fit={readerFit}
+          onReachedEnd={() => setAtEnd(true)}
+        />
+      )}
+      {atEnd && pageCount > 0 && (
+        <EndOfGalleryCard
+          gid={gidNum}
+          token={token}
+          pageCount={pageCount}
+          onRestart={() => setIndex(0)}
+          onDismiss={() => setAtEnd(false)}
         />
       )}
     </div>

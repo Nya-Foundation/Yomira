@@ -370,7 +370,7 @@ async fn worker_downloads_a_gallery_to_done() {
 #[tokio::test]
 async fn offline_reader_survives_restart_and_streams_without_network_or_cache() {
     use crate::download::offline;
-    use crate::http_images::{spawn_server, LocalImages};
+    use crate::http_images::{spawn_server, LocalImages, RemoteResolver};
     let (dir, manager) = test_manager("offline-restart", Arc::new(MockSource::new()));
     manager.enqueue(info(71, 4), None).unwrap();
     manager.run_workers();
@@ -409,7 +409,12 @@ async fn offline_reader_survives_restart_and_streams_without_network_or_cache() 
     let local = LocalImages::default();
     let cache_dir = dir.join("empty-cache");
     std::fs::create_dir(&cache_dir).unwrap();
-    let port = spawn_server(cache_dir.clone(), local.clone()).unwrap();
+    let port = spawn_server(
+        cache_dir.clone(),
+        local.clone(),
+        RemoteResolver::disconnected(),
+    )
+    .unwrap();
     let client = reqwest::Client::builder().no_proxy().build().unwrap();
     for index in [0, 2, 3] {
         let url = offline::page_url(&reopened, &local, port, 71, "tok71", index).unwrap();

@@ -1,5 +1,9 @@
 # Performance baseline and cleanup — 2026-09-07
 
+This is the record of one measurement pass, kept for its method and its
+numbers at that commit. Nothing here is re-measured as the code changes; treat
+the figures as a baseline to reproduce against, not as current performance.
+
 The first pass measured the production renderer with deterministic IPC fixtures and the actual Rust download-storage implementation. It found avoidable startup payload and recurring storage work, while the measured scrolling and page-turn flows remained responsive. The maintainability changes are described in [MAINTENANCE.md](MAINTENANCE.md).
 
 ## Measured results
@@ -53,10 +57,43 @@ The runner writes `summary.json`, per-run `.cpuprofile` captures, and Rollup’s
 
 Tracked summaries: [renderer before](performance/baseline-ui.json), [renderer after](performance/after-ui.json), [storage before](performance/baseline-storage.json), [storage after](performance/after-storage.json). Full local captures remain under `artifacts/performance/`, which is ignored by source control.
 
+## First device measurements — 2026-11-08
+
+Taken on a Xiaomi Pad 5 Pro (M2105K81AC), Android 13, WebView 151, 1600x2560
+at dpr 2.25, on a signed-out install of the packaged debug build. These are the
+first numbers from real hardware rather than headless Chromium; the renderer
+figures above remain a desktop baseline, not something to compare against
+directly.
+
+| Measurement | Result |
+| --- | ---: |
+| Activity launch (`am start -W`, 5 cold starts) | 227-243 ms, median 237 ms |
+| WebView document to first paint | 156 ms |
+| Interface blank after document start | 99 ms |
+| First frame carrying content | 139 ms |
+| Scroll frame gap, p50 | 16.7 ms |
+| Scroll frame gap, p95 | 29.6 ms |
+| Scroll frame gap, max | 36.4 ms |
+| Scroll frames over 50 ms | 0 |
+| JS heap across the scroll | 10 MB, unchanged |
+
+The scroll run mirrors the renderer methodology above: 70 px per animation
+frame for 180 frames, on the live home listing. It covered 11,990 px and grew
+the mounted set from 12 to 21 cards as pagination loaded, with the heap flat
+at both ends. The startup gate that holds the first paint until settings and
+the image server address resolve accounts for roughly 51 ms of the 99 ms.
+
+Page-turn latency is still unmeasured. It needs a gallery open at full image
+resolution, and the live listing offered no Non-H gallery to use; the offline
+reader on a deliberately chosen download is the better place to measure it.
+
+Method: wireless `adb` to the device, then the Chrome DevTools protocol into
+the application WebView. Timings only — no frames were captured.
+
 ## Decisions and limits
 
 The retained changes remove unused payload, idle work and duplicate infrastructure. A separate gallery-card memoization experiment increased scroll cost in this run and was reverted; no speculative memoization remains.
 
 These measurements use synthetic IPC and SVG images. They do not measure Tauri process startup, the real IPC bridge, HTTP/site latency, native image decoding, GPU memory, battery use, Windows/WebView2, or macOS/WebKit. The storage fixtures contain small arbitrary byte payloads and measure metadata/filesystem operations only. Browser heap samples include normal query-cache retention and are not enough to establish long-term memory behavior.
 
-Next useful native measurements are packaged cold/warm startup; page turns with realistic image sizes; a large library on slower or removable storage; and long reader sessions with cache eviction. The source review also found that `getFavoriteNote` still walks paginated favorites until it finds a gallery. That can produce substantial network latency for large accounts, but this pass did not benchmark authenticated site traffic or change its semantics.
+Next useful native measurements are packaged cold/warm startup; page turns with realistic image sizes; a large library on slower or removable storage; and long reader sessions with cache eviction. The `getFavoriteNote` page walk this pass recorded as an open item has since been replaced by a single `get_favorite_note` request against the addfav popup; authenticated site traffic still has no benchmark here.

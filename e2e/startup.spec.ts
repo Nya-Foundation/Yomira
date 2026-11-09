@@ -1,0 +1,33 @@
+import { expect, test } from "@playwright/test";
+import { installFixture } from "../scripts/profiling/fixture.mjs";
+
+// The first paint waited on two IPC calls so the saved display scale would not
+// flash. A cold start can drop the response to the first call, leaving those
+// promises pending for good — and the app then rendered nothing but the dark
+// canvas, a black screen that only a reload cleared. The gate has to give up.
+test("a lost startup IPC response does not leave a black screen", async ({ page }) => {
+  await page.addInitScript(installFixture);
+  await page.addInitScript(() => {
+    const w = window as any;
+    const original = w.__TAURI_INTERNALS__.invoke;
+    const stuck = new Set(["image_base_url", "plugin:store|load"]);
+    w.__TAURI_INTERNALS__.invoke = (command: string, args: unknown) =>
+      stuck.has(command) ? new Promise(() => {}) : original(command, args);
+  });
+
+  await page.goto("/");
+  await expect(page.getByRole("link", { name: "Home" }).first()).toBeVisible({ timeout: 8000 });
+  expect(await page.evaluate(() => document.getElementById("root")!.childElementCount)).toBeGreaterThan(0);
+
+  // And it must not merely survive: the route chunk is requested as soon as the
+  // shell renders, so its start time is when the app really began. A gate
+  // waiting on those dropped responses pushed this out by its whole timeout.
+  const routeChunkStart = await page.evaluate(
+    () =>
+      performance
+        .getEntriesByType("resource")
+        .filter((r) => /GalleryListPage/.test(r.name))
+        .map((r) => r.startTime)[0] ?? Infinity,
+  );
+  expect(routeChunkStart).toBeLessThan(1000);
+});

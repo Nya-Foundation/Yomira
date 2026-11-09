@@ -12,25 +12,31 @@ import { OfflineContext, pageQueryOptions, usePageQuery } from "./page-query";
 
 export function PagedReader({
   controlsVisible,
+  toolbarH,
   gid,
   token,
   index,
   pageCount,
   go,
+  onToggleControls,
+  fit,
 }: {
   controlsVisible: boolean;
+  toolbarH: number;
   gid: number;
   token: string;
   index: number;
   pageCount: number;
   go: (delta: number) => void;
+  onToggleControls: () => void;
+  fit: "page" | "width";
 }) {
   const t = useT();
   const queryClient = useQueryClient();
   const localOnly = useContext(OfflineContext);
   const readerPreloadCount = useSettings((s) => s.settings.readerPreloadCount);
   const direction = useSettings((s) => s.settings.readerDirection);
-  const gesture = useRef<{ x: number; y: number; blocked: boolean } | null>(null);
+  const gesture = useRef<{ x: number; y: number; blocked: boolean; edge: boolean } | null>(null);
   const suppressClickUntil = useRef(0);
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
@@ -99,7 +105,13 @@ export function PagedReader({
     const target = e.target as Element;
     if (target.closest("button:not([data-reader-edge]), a, input")) return;
     target.setPointerCapture?.(e.pointerId);
-    if (pointers.current.size === 0) gesture.current = { x: e.clientX, y: e.clientY, blocked: zoom > 1 };
+    if (pointers.current.size === 0)
+      gesture.current = {
+        x: e.clientX,
+        y: e.clientY,
+        blocked: zoom > 1,
+        edge: !!target.closest("[data-reader-edge]"),
+      };
     pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
     if (pointers.current.size === 2) {
       if (gesture.current) gesture.current.blocked = true;
@@ -118,7 +130,12 @@ export function PagedReader({
       applyZoom(zoom * (dist / pinchDist.current));
       pinchDist.current = dist;
     } else if (pointers.current.size === 1 && zoom > 1) {
-      setPan((p) => ({ x: p.x + e.clientX - prev.x, y: p.y + e.clientY - prev.y }));
+      // In width mode the scroller owns vertical movement, so panning there
+      // would move the page twice for one drag.
+      setPan((p) => ({
+        x: p.x + e.clientX - prev.x,
+        y: fit === "width" ? p.y : p.y + e.clientY - prev.y,
+      }));
     }
   };
 
@@ -131,18 +148,35 @@ export function PagedReader({
     gesture.current = null;
     const dx = e.clientX - start.x;
     const dy = e.clientY - start.y;
-    if (start.blocked || Math.hypot(dx, dy) > 12) suppressClickUntil.current = Date.now() + 400;
-    if (e.type === "pointercancel" || start.blocked) return;
+    const moved = Math.hypot(dx, dy);
+    if (start.blocked || moved > 12) suppressClickUntil.current = Date.now() + 400;
+    if (e.type === "pointercancel") return;
+    // A still tap off the paging edges is the only way to reach the toolbar
+    // once it is hidden.
+    if (moved <= 12 && !start.edge) {
+      onToggleControls();
+      return;
+    }
+    if (start.blocked) return;
     if (Math.abs(dx) >= 45 && Math.abs(dx) > Math.abs(dy) * 1.3) {
       go((dx < 0 ? 1 : -1) * (direction === "rtl" ? -1 : 1));
     }
   };
 
+  const pageScrollRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (pageScrollRef.current) pageScrollRef.current.scrollTop = 0;
+  }, [index]);
+
   const error = pageQuery.error;
 
   return (
     <div
-      className={cn("relative flex min-h-0 flex-1 items-center justify-center overflow-hidden touch-none bg-background", controlsVisible && "pt-24")}
+      style={{ paddingTop: controlsVisible ? toolbarH : 0 }}
+      className={cn(
+        "relative flex min-h-0 flex-1 items-center justify-center overflow-hidden bg-background",
+        fit === "width" ? "touch-pan-y" : "touch-none",
+      )}
       onWheel={onWheel}
       data-reader-surface
       onPointerDown={onPointerDown}
@@ -165,7 +199,7 @@ export function PagedReader({
         data-reader-edge
         aria-label={t("reader.nextPage")}
         onClick={() => go(1)}
-        disabled={index >= pageCount - 1 || zoom > 1}
+        disabled={zoom > 1}
         className={`absolute inset-y-0 ${direction === "rtl" ? "left-0" : "right-0"} z-20 w-[15%] disabled:pointer-events-none cursor-e-resize disabled:cursor-default`}
       />
 
@@ -194,26 +228,44 @@ export function PagedReader({
         />
       )}
 
-      {pageQuery.data && !error && (
-        <ReaderImage
-          key={`${pageQuery.data.url}:${pageQuery.dataUpdatedAt}`}
-          onRetry={() => void retry()}
-          src={pageQuery.data.url}
-          alt={t("detail.pageAlt", { n: index + 1 })}
-          draggable={false}
-          onDoubleClick={() => {
-            setZoom(1);
-            setPan({ x: 0, y: 0 });
-          }}
-          style={{
-            transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
-          }}
-          className={cn(
-            "max-h-full max-w-full touch-none select-none object-contain transition-transform duration-150",
-            zoom > 1 ? "cursor-grab active:cursor-grabbing" : "cursor-default",
-          )}
-        />
-      )}
+      {pageQuery.data && !error && (() => {
+        const image = (
+          <ReaderImage
+            key={`${pageQuery.data.url}:${pageQuery.dataUpdatedAt}`}
+            onRetry={() => void retry()}
+            src={pageQuery.data.url}
+            alt={t("detail.pageAlt", { n: index + 1 })}
+            draggable={false}
+            onDoubleClick={() => {
+              setZoom(1);
+              setPan({ x: 0, y: 0 });
+            }}
+            style={{
+              transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
+            }}
+            className={cn(
+              "select-none transition-transform duration-150",
+              fit === "width"
+                ? "block w-full max-w-none"
+                : "max-h-full max-w-full touch-none object-contain",
+              zoom > 1 ? "cursor-grab active:cursor-grabbing" : "cursor-default",
+            )}
+          />
+        );
+        if (fit !== "width") return image;
+        // Positioned rather than a flex child so the edge zones and overlays
+        // stay anchored to the viewport while the page itself scrolls.
+        return (
+          <div
+            ref={pageScrollRef}
+            data-page-scroll
+            className="absolute inset-x-0 bottom-0 overflow-y-auto overscroll-contain"
+            style={{ top: controlsVisible ? toolbarH : 0, touchAction: "pan-y" }}
+          >
+            {image}
+          </div>
+        );
+      })()}
 
       {zoom !== 1 && (
         <div className="absolute bottom-4 left-1/2 z-20 flex -translate-x-1/2 items-center gap-1.5 rounded-full border border-border bg-elevated/90 px-2.5 py-1 text-caption text-muted-foreground">

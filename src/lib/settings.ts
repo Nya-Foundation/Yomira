@@ -17,6 +17,8 @@ export interface AppSettings {
   galleryView: "thumbnail" | "detail";
   readerDirection: "ltr" | "rtl";
   readerMode: ReaderMode;
+  /** "page" fits the whole page in view; "width" fills the width and scrolls. */
+  readerFit: "page" | "width";
   readerPreloadCount: number;
 }
 
@@ -28,10 +30,47 @@ const DEFAULTS: AppSettings = {
   galleryView: "thumbnail",
   readerDirection: "ltr",
   readerMode: "paged",
+  readerFit: "page",
   readerPreloadCount: 3,
 };
 
 const LS_KEY = "exviewer.settings";
+
+/**
+ * Everything the first paint needs, mirrored where it can be read
+ * synchronously. The persisted copy answers over IPC, and an Android cold
+ * start drops that first response outright — so without this the dark-first
+ * palette at the default scale paints and then jumps, or waits on a reply
+ * that never comes.
+ */
+const PAINT_KEY = "exviewer.paint";
+const LEGACY_THEME_KEY = "exviewer.theme";
+
+type PaintSettings = Pick<AppSettings, "theme" | "density" | "displayScale">;
+
+function rememberPaint({ theme, density, displayScale }: AppSettings) {
+  try {
+    localStorage.setItem(PAINT_KEY, JSON.stringify({ theme, density, displayScale }));
+  } catch {
+    /* unavailable — the async load still applies these, just later */
+  }
+}
+
+/** Apply the last known presentation. Call before mounting, not from a component. */
+export function applyRememberedPaint() {
+  try {
+    const raw = localStorage.getItem(PAINT_KEY);
+    const paint = raw ? (JSON.parse(raw) as Partial<PaintSettings>) : null;
+    const theme = paint?.theme ?? localStorage.getItem(LEGACY_THEME_KEY);
+    if (theme === "light" || theme === "dark") applyTheme(theme);
+    if (paint?.density === "compact" || paint?.density === "comfortable") applyDensity(paint.density);
+    if (typeof paint?.displayScale === "number" && paint.displayScale > 0) {
+      applyDisplayScale(paint.displayScale);
+    }
+  } catch {
+    /* unavailable — fall back to the dark-first defaults */
+  }
+}
 
 let store: Store | null = null;
 
@@ -80,12 +119,15 @@ export const useSettings = create<SettingsState>((set, get) => ({
   init: async () => {
     if (get().loaded) return;
     const persisted = await loadPersisted();
-    set({ settings: { ...DEFAULTS, ...persisted }, loaded: true });
+    const settings = { ...DEFAULTS, ...persisted };
+    set({ settings, loaded: true });
+    rememberPaint(settings);
   },
   update: (patch) => {
     const settings = { ...get().settings, ...patch };
     set({ settings });
     void persist(settings);
+    rememberPaint(settings);
     applyTheme(settings.theme);
     applyDensity(settings.density);
     applyDisplayScale(settings.displayScale);

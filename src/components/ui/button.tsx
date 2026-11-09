@@ -2,7 +2,7 @@ import { forwardRef, type ButtonHTMLAttributes } from "react";
 import { Link, type LinkProps } from "react-router-dom";
 import { cn } from "../../lib/utils";
 
-type Variant = "default" | "outline" | "ghost" | "ghost-link" | "subtle";
+type Variant = "default" | "outline" | "ghost" | "ghost-link" | "subtle" | "danger";
 type Size = "sm" | "md" | "icon";
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
@@ -19,6 +19,8 @@ const variants: Record<Variant, string> = {
   "ghost-link":
     "inline-flex h-8 items-center rounded-md border border-border px-3 text-small text-muted-foreground transition-colors hover:bg-surface-2 hover:text-foreground",
   subtle: "bg-surface-2 text-foreground hover:bg-overlay border border-border",
+  danger:
+    "border border-danger/30 bg-danger/10 text-danger hover:bg-danger/20",
 };
 
 const sizes: Record<Size, string> = {
@@ -33,6 +35,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       ref={ref}
       type={type}
       className={cn(
+        "app-control",
         "inline-flex items-center justify-center gap-1.5 font-medium whitespace-nowrap",
         "transition-[background-color,color,border-color] duration-150 select-none",
         "disabled:pointer-events-none disabled:opacity-50",
@@ -48,5 +51,5 @@ Button.displayName = "Button";
 
 /** Router Link wearing the ghost-link Button look (navigation actions in empty/error states). */
 export function GhostLink({ className, ...props }: LinkProps) {
-  return <Link className={cn(variants["ghost-link"], className)} {...props} />;
+  return <Link className={cn("app-control", variants["ghost-link"], className)} {...props} />;
 }

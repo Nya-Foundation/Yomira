@@ -123,7 +123,26 @@ impl DnsResolver for HostsResolver {
         match found {
             Some(mut ips) => {
                 shuffle(&mut ips);
-                Box::pin(async move { Ok(ips) })
+                let fallback = self.fallback.resolve(host);
+                Box::pin(async move {
+                    // Resolution that reflects today goes first, with the
+                    // bundled table kept behind it as a safety net. The table
+                    // used to answer alone, so an address that went stale made
+                    // the host unreachable outright — that is what stranded
+                    // every thumbnail on ehgt.org. Leading with it is no good
+                    // either: connect then pays for the dead address before it
+                    // fails over, which cost seconds on the first screen.
+                    // Whichever side is wrong, the other one is still in the
+                    // list, so the host stays reachable either way.
+                    let pinned = ips;
+                    let mut ips = fallback.await.unwrap_or_default();
+                    for ip in pinned {
+                        if !ips.contains(&ip) {
+                            ips.push(ip);
+                        }
+                    }
+                    Ok(ips)
+                })
             }
             None => self.fallback.resolve(host),
         }
@@ -272,7 +291,7 @@ mod tests {
     }
 
     #[test]
-    fn hosts_resolver_short_circuits_and_falls_back() {
+    fn hosts_resolver_answers_from_the_table_without_stranding_the_host() {
         let table = Arc::new(RwLock::new(HashMap::new()));
         let fallback = Arc::new(SystemResolver);
         let resolver = HostsResolver::new(table.clone(), fallback);
@@ -281,13 +300,24 @@ mod tests {
         let ips = futures_block_on(resolver.resolve("localhost")).unwrap();
         assert!(!ips.is_empty());
 
-        // Insert a table entry → returned instead of system DNS.
+        // With a table entry, resolution that reflects today still leads and
+        // the bundled address follows as a safety net. Answering from the table
+        // alone stranded hosts whose bundled address had gone stale; leading
+        // with it made every connect pay for the dead address first.
+        let pinned: IpAddr = "10.1.2.3".parse().unwrap();
         table
             .write()
             .unwrap()
-            .insert("localhost".to_string(), vec!["10.1.2.3".parse().unwrap()]);
+            .insert("localhost".to_string(), vec![pinned]);
         let ips = futures_block_on(resolver.resolve("localhost")).unwrap();
-        assert_eq!(ips, vec!["10.1.2.3".parse::<IpAddr>().unwrap()]);
+        assert!(
+            ips.first().is_some_and(|ip| ip.is_loopback()),
+            "got {ips:?}"
+        );
+        assert!(
+            ips.contains(&pinned),
+            "the table is still a fallback: {ips:?}"
+        );
     }
 
     fn futures_block_on<F: std::future::Future>(f: F) -> F::Output {

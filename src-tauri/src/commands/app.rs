@@ -9,17 +9,13 @@ use crate::app_state::{AppState, NetworkConfig};
 use crate::core::error::EhError;
 use crate::core::models::GalleryInfo;
 use crate::db::{BlacklistEntry, HistoryEntry, QuickSearchEntry};
-use crate::image_cache;
 
+/// Base URL of the loopback image server. The webview composes image URLs
+/// from it, so displaying a thumbnail costs no IPC and `<img loading="lazy">`
+/// keeps its meaning; the server fetches and caches on first request.
 #[tauri::command]
-pub async fn get_image(state: State<'_, AppState>, url: String) -> Result<String, EhError> {
-    image_cache::get_image(
-        &state.client,
-        &state.image_cache,
-        state.image_server_port,
-        &url,
-    )
-    .await
+pub fn image_base_url(state: State<'_, AppState>) -> String {
+    format!("http://127.0.0.1:{}", state.image_server_port)
 }
 
 // ---------------------------------------------------------------------------
@@ -360,9 +356,7 @@ pub async fn set_network_config(
     // client when site/proxy changed; cookies survive).
     config.save(&state.db)?;
     let client_config = config.to_client_config()?;
-    // The download engine owns a second client sharing our cookies/hosts;
-    // keep its config in sync (site/proxy changes apply without restart).
-    state.downloads.apply_client_config(&client_config)?;
+    // The download engine shares this client, so one update covers both.
     state.client.update_config(client_config)?;
     *state.hosts.write().map_err(|_| EhError::Cancelled)? = config.parsed_hosts();
     state

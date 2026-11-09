@@ -1,14 +1,16 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, type ReactNode } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { Inbox, LayoutGrid, List } from "lucide-react";
+import { useElementWidth } from "../../lib/use-element-width";
+import { Inbox } from "lucide-react";
 import type { GalleryInfo } from "../../lib/types";
 import { GalleryCard, GalleryCardSkeleton } from "./gallery-card";
 import { EmptyState } from "../ui/empty-state";
+import { errorCopy, siteMessage } from "../../lib/api/errors";
 import { ErrorState } from "../ui/error-state";
 import { Spinner } from "../ui/spinner";
 import { useT } from "../../lib/i18n";
 import { useSettings } from "../../lib/settings";
-import { Button } from "../ui/button";
+import { Button, GhostLink } from "../ui/button";
 import { cn } from "../../lib/utils";
 
 const PAD_X = 16;
@@ -49,27 +51,19 @@ export function GalleryGrid({
 }: GalleryGridProps) {
   const t = useT();
   const view = useSettings((s) => s.settings.galleryView);
-  const updateSettings = useSettings((s) => s.update);
   const scale = useSettings((s) => s.settings.displayScale);
   const density = useSettings((s) => s.settings.density);
   const gap = density === "compact" ? 12 : 20;
   const baseCol = density === "compact" ? 150 : 180;
   const scrollRef = useRef<HTMLDivElement>(null);
-  const [width, setWidth] = useState(0);
+  const width = useElementWidth(scrollRef, [loading, galleries.length === 0]);
   const restoredKeyRef = useRef<string | null>(null);
   const saveRafRef = useRef<number | null>(null);
+  /** Item index at the top of the viewport, and the layout it was read under. */
+  const anchorRef = useRef(0);
+  const layoutRef = useRef<{ cols: number; rowH: number } | null>(null);
   const onLoadMoreRef = useRef(onLoadMore);
   onLoadMoreRef.current = onLoadMore;
-
-  useEffect(() => {
-    const el = scrollRef.current;
-    if (!el) return;
-    const ro = new ResizeObserver((entries) => {
-      setWidth(entries[0]?.contentRect.width ?? 0);
-    });
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, [loading, galleries.length === 0]);
 
   const storageKey = scrollKey ? `exviewer.scroll.${scrollKey}` : null;
 
@@ -102,21 +96,36 @@ export function GalleryGrid({
     };
   }, [saveScroll]);
 
+  useEffect(() => {
+    if (scrollRef.current) scrollRef.current.scrollTop = 0;
+  }, [view]);
+
   const onScroll = useCallback(() => {
     if (saveRafRef.current != null) return;
     saveRafRef.current = requestAnimationFrame(() => {
       saveRafRef.current = null;
       saveScroll();
       const el = scrollRef.current;
-      if (el && hasNextPage && !isFetchingNextPage && !error && el.scrollHeight - el.scrollTop - el.clientHeight < 600) {
-        onLoadMoreRef.current();
+      const layout = layoutRef.current;
+      if (el && layout) {
+        // The first fully visible row, which is the one the reader perceives as
+        // the top: the row above it is already cut off by the viewport edge.
+        anchorRef.current = Math.ceil(el.scrollTop / layout.rowH) * layout.cols;
       }
     });
-  }, [saveScroll, hasNextPage, isFetchingNextPage, error]);
+  }, [saveScroll]);
 
-  const minCol = (width < 480 ? 140 : baseCol) * scale;
+  // The card's text block already grows with the scale because it is sized in
+  // rem. Multiplying the cover minimum by it as well double-counts, and at 2x
+  // left a single cover taller than the viewport with no card fully visible.
+  const coverScale = Math.min(scale, 1.25);
+  const minCol = (width < 480 ? 140 : baseCol) * coverScale;
   const cols = view === "detail" ? 1 : Math.max(1, Math.floor((width - PAD_X * 2 + gap) / (minCol + gap)));
-  const colW = width > 0 ? (width - PAD_X * 2 - gap * (cols - 1)) / cols : minCol;
+  // Whatever the column count leaves over would otherwise inflate every card,
+  // worst at the low column counts tablets and high scales produce. Cap the
+  // overshoot and let the remainder sit in the outer margin instead.
+  const fillW = width > 0 ? (width - PAD_X * 2 - gap * (cols - 1)) / cols : minCol;
+  const colW = view === "detail" ? fillW : Math.min(fillW, minCol * 1.25);
   const rowH = view === "detail" ? 170 * scale + gap : colW * (4 / 3) + 130 * scale + gap;
   const rows = Math.ceil(galleries.length / cols);
 
@@ -130,6 +139,24 @@ export function GalleryGrid({
   useLayoutEffect(() => {
     virtualizer.measure();
   }, [width, scale, density, view, virtualizer]);
+
+  /**
+   * Rotating a tablet changes the column count and the row height together, so
+   * the offset that was kept pointed at an unrelated part of the list — the
+   * further you had scrolled, the further off it landed. Re-anchor on the item
+   * that was at the top instead. The first run only records the layout, which
+   * leaves the saved-offset restore above to place the initial scroll.
+   */
+  useLayoutEffect(() => {
+    if (width === 0 || galleries.length === 0) return;
+    const prev = layoutRef.current;
+    layoutRef.current = { cols, rowH };
+    if (!prev || (prev.cols === cols && prev.rowH === rowH)) return;
+    // Rows carry measured heights, so the virtualizer's own offsets place the
+    // row more accurately than multiplying by the estimate.
+    const row = Math.min(rows - 1, Math.floor(anchorRef.current / cols));
+    if (row >= 0) virtualizer.scrollToIndex(row, { align: "start" });
+  }, [cols, rowH, rows, width, galleries.length, virtualizer]);
 
   // load-more sentinel: created once per open/fetching state; the callback is
   // read through a ref so loaded pages don't churn the observer
@@ -151,7 +178,17 @@ export function GalleryGrid({
   if (error && !loading && galleries.length === 0) {
     return (
       <div className={cn("flex overflow-y-auto p-4", className)}>
-        <ErrorState description={t("list.errorDesc")} onRetry={onRetry} />
+        <ErrorState
+          description={siteMessage(error) ?? t(errorCopy(error).desc)}
+          onRetry={onRetry}
+          action={
+            errorCopy(error).action === "offline" ? (
+              <GhostLink to="/downloads">{t("nav.downloads")}</GhostLink>
+            ) : errorCopy(error).action === "signin" ? (
+              <GhostLink to="/signin">{t("common.signIn")}</GhostLink>
+            ) : undefined
+          }
+        />
       </div>
     );
   }
@@ -171,19 +208,7 @@ export function GalleryGrid({
 
   return (
     <div className={cn("flex min-h-0 flex-col", className)}>
-      <div className="flex shrink-0 items-center justify-end gap-1 border-b border-border px-4 py-1.5" role="group" aria-label={t("list.galleryView")}>
-        {(["thumbnail", "detail"] as const).map((mode) => (
-          <Button key={mode} variant={view === mode ? "subtle" : "ghost"} size="sm"
-            aria-pressed={view === mode} onClick={() => {
-              if (scrollRef.current) scrollRef.current.scrollTop = 0;
-              updateSettings({ galleryView: mode });
-            }} className="h-10 gap-1.5">
-            {mode === "thumbnail" ? <LayoutGrid size={15} /> : <List size={15} />}
-            {t(mode === "thumbnail" ? "list.thumbnailView" : "list.detailView")}
-          </Button>
-        ))}
-      </div>
-    <div ref={scrollRef} onScroll={onScroll} className="min-h-0 flex-1 overflow-y-auto">
+    <div ref={scrollRef} onScroll={onScroll} data-grid-scroll className="min-h-0 flex-1 overflow-y-auto">
       {width > 0 && (
         <div
           className="relative mt-4"
@@ -202,7 +227,8 @@ export function GalleryGrid({
                   transform: `translateY(${row.start}px)`,
                   width,
                   padding: `0 ${PAD_X}px ${gap}px`,
-                  gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
+                  gridTemplateColumns: `repeat(${cols}, ${colW}px)`,
+                  justifyContent: "center",
                   gap,
                 }}
               >
@@ -228,7 +254,14 @@ export function GalleryGrid({
         </div>
       )}
 
-      {!!error && galleries.length > 0 && <div className="flex justify-center p-4"><Button variant="outline" onClick={onRetry}>{t("common.retry")}</Button></div>}
+      {!!error && galleries.length > 0 && (
+        <div className="flex flex-col items-center gap-2 p-4 text-center">
+          <p role="alert" className="max-w-sm text-small leading-5 text-muted-foreground">
+            {siteMessage(error) ?? t(errorCopy(error).desc)}
+          </p>
+          <Button variant="outline" onClick={onRetry}>{t("common.retry")}</Button>
+        </div>
+      )}
       <div data-load-more className="flex h-14 items-center justify-center">
         {hasNextPage && !loading && !error && (
           <Button variant="ghost" size="sm" onClick={onLoadMore} disabled={isFetchingNextPage} className="gap-2">

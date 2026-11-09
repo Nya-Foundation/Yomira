@@ -44,7 +44,8 @@ test("missing pages stay offline and retry when saved files become available", a
   });
   await page.getByRole("button", { name: "Retry", exact: true }).click();
   await expect(page.getByRole("img", { name: "Page 4", exact: true })).toBeVisible();
-  await expect(page.getByRole("status")).toContainText("Offline · 4 of");
+  // The page counter is also a live region now, so name the one we mean.
+  await expect(page.getByRole("status").filter({ hasText: "Offline" })).toContainText("Offline · 4 of");
 });
 
 test("an unknown or removed download does not fall back to gallery loading", async ({ page }) => {

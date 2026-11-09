@@ -6,6 +6,7 @@
 //! * [`gallery_detail`] ← `GalleryDetailParser.java` (+ `GalleryDetailUrlParser.java`)
 //! * [`gallery_page`] ← `GalleryPageParser.java`
 //! * [`favorites`] ← `FavoritesParser.java`
+//! * [`favorite_popup`] ← the addfav popup form in `EhEngine.addFavorites`
 //! * [`toplist`] ← `TopListParser.java`
 //! * [`sign_in`] ← `SignInParser.java`
 //! * [`torrent`] ← `TorrentParser.java`
@@ -13,6 +14,7 @@
 //! * [`quota`] ← `EhHomeParser.java` (home.php quota/limits)
 
 pub mod archiver;
+pub mod favorite_popup;
 pub mod favorites;
 pub mod gallery_detail;
 pub mod gallery_list;
@@ -31,6 +33,7 @@ use scraper::{ElementRef, Selector};
 use crate::core::error::EhError;
 
 pub use archiver::{parse_archiver, parse_archiver_download_link, ArchiverForm, ArchiverInfo};
+pub use favorite_popup::{parse_favorite_popup, FavoritePopup};
 pub use favorites::{parse_favorites, FavoritesResult};
 pub use gallery_detail::{
     parse_comment_error, parse_gallery_detail, parse_preview_set, GalleryDetailUrl,

@@ -47,9 +47,31 @@ traces do not belong in Git. Reproducible profiling summaries under
 ## Verification
 
 CI runs TypeScript, frontend unit and browser tests, release-tooling tests,
-Rust formatting, Clippy and Rust tests. Platform jobs compile installable
-bundles. These do not prove live-site compatibility or physical-device behavior.
-Use synthetic regression fixtures and record native manual checks separately.
+the Content Security Policy check, Rust formatting, Clippy and Rust tests.
+Platform jobs compile installable bundles. These do not prove live-site
+compatibility or physical-device behavior. Use synthetic regression fixtures
+and record native manual checks separately.
+
+`bun run check:csp` serves the production build with the configured policy as
+a real response header and drives it in Chromium, failing on any violation or
+blank screen. Chromium is WebView2's engine; `bun run check:csp:webkit` covers
+WebKitGTK, which is what Linux ships. WKWebView still needs a packaged smoke
+test when the policy changes.
+
+A packaged build serves the configured policy plus a generated `script-src`
+holding `'self'` and one sha256 hash per inline script — 40 of them at the time
+of writing. That `'self'` is why the route chunks load, and why no script tag
+carries a nonce. To test the real string rather than the configured one,
+provoke a violation in a running build, read `originalPolicy` off the event,
+and pass the result with `--policy-file`.
+
+The WebKitGTK check wants no devtools and no visible window: the page reports
+its own findings over HTTP, so an offscreen webview is enough. A screenshot
+would prove nothing, because the window does not paint without a GPU. Measured
+on WebKitGTK 2.52.6: unhashed inline scripts and `eval` are blocked, sha256 and
+`'self'` sources are honored, and a cross-origin fetch is blocked by
+`connect-src`. `connect-src` does not govern IPC on Linux, though, which goes
+through WebKit message handlers.
 
 Performance profiling is separate from correctness gates because host load
 affects timing. See [PERFORMANCE.md](PERFORMANCE.md) for the fixed workload

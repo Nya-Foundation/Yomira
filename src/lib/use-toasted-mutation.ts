@@ -1,4 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { errorCopy, siteMessage } from "./api/errors";
+import { useT } from "./i18n";
 import { toast } from "../stores/toast";
 
 interface ToastedMutationOptions<TData, TVariables> {
@@ -23,6 +25,7 @@ export function useToastedMutation<TData = unknown, TVariables = void>(
   opts: ToastedMutationOptions<TData, TVariables>,
 ) {
   const queryClient = useQueryClient();
+  const t = useT();
   const { mutationFn, successMessage, successDescription, errorMessage, onSuccess, invalidateKeys } =
     opts;
   return useMutation({
@@ -42,6 +45,6 @@ export function useToastedMutation<TData = unknown, TVariables = void>(
       }
       onSuccess?.(data, vars);
     },
-    onError: () => toast.error(errorMessage),
+    onError: (e) => toast.error(errorMessage, siteMessage(e) ?? t(errorCopy(e).desc)),
   });
 }

@@ -1,6 +1,8 @@
+import { useEffect, useState } from "react";
 import { categoryLabel, useT, type TKey } from "../../lib/i18n";
 import {
   CATEGORIES,
+  DEFAULT_LIST_PARAMS,
   type Category,
   type ListParams
 } from "../../lib/types";
@@ -24,6 +26,27 @@ const ADV_SEARCH_TOGGLES: Array<{
   { field: "searchExpunged", label: "list.sheet.searchExpunged", hint: "list.sheet.searchExpungedHint" },
 ];
 
+/**
+ * Reset means "back to the defaults", so it reads them from the one place that
+ * defines them rather than restating the values and drifting from it.
+ */
+const ADVANCED_FIELDS = [
+  "minRating",
+  "minPages",
+  "maxPages",
+  "enableUploader",
+  "enableTags",
+  "searchDesc",
+  "searchTorrent",
+  "searchLowPowerTags",
+  "searchDownvotedTags",
+  "searchExpunged",
+] as const satisfies readonly (keyof ListParams)[];
+
+const ADVANCED_DEFAULTS = Object.fromEntries(
+  ADVANCED_FIELDS.map((field) => [field, DEFAULT_LIST_PARAMS[field]]),
+) as Pick<ListParams, (typeof ADVANCED_FIELDS)[number]>;
+
 interface FilterSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -31,7 +54,34 @@ interface FilterSheetProps {
   setParams: React.Dispatch<React.SetStateAction<ListParams>>;
 }
 
+
+/**
+ * Sheet edits are held locally and committed only by Apply.
+ *
+ * Writing straight through meant every chip and switch changed the list query
+ * key, so configuring four categories and a few switches queued that many
+ * listing requests at 500ms apart — for states the user was still composing,
+ * ahead of the one they wanted. It also left "Apply" doing nothing but close.
+ * Dismissing (Escape, backdrop, close) discards instead, so the sheet's only
+ * commit point is the button that says it commits.
+ */
+function useDraftParams(open: boolean, params: ListParams) {
+  const [draft, setDraft] = useState(params);
+  // Seeded when the sheet opens, not whenever params change, so editing a
+  // value cannot be undone by the commit it causes.
+  useEffect(() => {
+    if (open) setDraft(params);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+  return [draft, setDraft] as const;
+}
+
 export function CategorySheet({ open, onOpenChange, params, setParams }: FilterSheetProps) {
+  const [draft, setDraft] = useDraftParams(open, params);
+  const apply = () => {
+    setParams(draft);
+    onOpenChange(false);
+  };
   const t = useT();
   return (
       <Sheet open={open} onOpenChange={onOpenChange} title={t("list.sheet.categoriesTitle")}>
@@ -40,12 +90,12 @@ export function CategorySheet({ open, onOpenChange, params, setParams }: FilterS
         </p>
         <div className="flex flex-wrap gap-1.5">
           {CATEGORIES.map((c: Category) => {
-            const selected = params.categories?.includes(c) ?? false;
+            const selected = draft.categories?.includes(c) ?? false;
             return (
               <button
                 key={c}
                 onClick={() =>
-                  setParams((p) => {
+                  setDraft((p) => {
                     const cur = p.categories ?? [];
                     return {
                       ...p,
@@ -70,13 +120,16 @@ export function CategorySheet({ open, onOpenChange, params, setParams }: FilterS
             );
           })}
         </div>
-        <div className="mt-4">
+        <div className="mt-4 flex items-center justify-between gap-2">
           <Button
             variant="outline"
             size="sm"
-            onClick={() => setParams((p) => ({ ...p, categories: null }))}
+            onClick={() => setDraft((p) => ({ ...p, categories: null }))}
           >
             {t("list.sheet.allCategories")}
+          </Button>
+          <Button size="sm" onClick={apply}>
+            {t("list.sheet.apply")}
           </Button>
         </div>
       </Sheet>
@@ -84,6 +137,11 @@ export function CategorySheet({ open, onOpenChange, params, setParams }: FilterS
 }
 
 export function AdvancedSearchSheet({ open, onOpenChange, params, setParams }: FilterSheetProps) {
+  const [draft, setDraft] = useDraftParams(open, params);
+  const apply = () => {
+    setParams(draft);
+    onOpenChange(false);
+  };
   const t = useT();
   return (
       <Sheet open={open} onOpenChange={onOpenChange} title={t("list.sheet.advancedTitle")}>
@@ -94,9 +152,9 @@ export function AdvancedSearchSheet({ open, onOpenChange, params, setParams }: F
             </label>
             <Select
               aria-label={t("list.sheet.minRating")}
-              value={params.minRating?.toString() ?? ""}
+              value={draft.minRating?.toString() ?? ""}
               onChange={(e) =>
-                setParams((p) => ({
+                setDraft((p) => ({
                   ...p,
                   minRating: e.target.value === "" ? null : Number(e.target.value),
                 }))
@@ -120,9 +178,9 @@ export function AdvancedSearchSheet({ open, onOpenChange, params, setParams }: F
                 type="number"
                 min={0}
                 placeholder={t("list.sheet.minPlaceholder")}
-                value={params.minPages ?? ""}
+                value={draft.minPages ?? ""}
                 onChange={(e) =>
-                  setParams((p) => ({
+                  setDraft((p) => ({
                     ...p,
                     minPages: e.target.value === "" ? null : Number(e.target.value),
                   }))
@@ -134,9 +192,9 @@ export function AdvancedSearchSheet({ open, onOpenChange, params, setParams }: F
                 type="number"
                 min={0}
                 placeholder={t("list.sheet.maxPlaceholder")}
-                value={params.maxPages ?? ""}
+                value={draft.maxPages ?? ""}
                 onChange={(e) =>
-                  setParams((p) => ({
+                  setDraft((p) => ({
                     ...p,
                     maxPages: e.target.value === "" ? null : Number(e.target.value),
                   }))
@@ -152,8 +210,8 @@ export function AdvancedSearchSheet({ open, onOpenChange, params, setParams }: F
               <p className="text-caption text-faint-foreground">{t("list.sheet.uploaderSearchHint")}</p>
             </div>
             <Switch
-              checked={params.enableUploader}
-              onCheckedChange={(v) => setParams((p) => ({ ...p, enableUploader: v }))}
+              checked={draft.enableUploader}
+              onCheckedChange={(v) => setDraft((p) => ({ ...p, enableUploader: v }))}
               aria-label={t("list.sheet.enableUploader")}
             />
           </div>
@@ -164,8 +222,8 @@ export function AdvancedSearchSheet({ open, onOpenChange, params, setParams }: F
               <p className="text-caption text-faint-foreground">{t("list.sheet.tagSearchHint")}</p>
             </div>
             <Switch
-              checked={params.enableTags}
-              onCheckedChange={(v) => setParams((p) => ({ ...p, enableTags: v }))}
+              checked={draft.enableTags}
+              onCheckedChange={(v) => setDraft((p) => ({ ...p, enableTags: v }))}
               aria-label={t("list.sheet.enableTags")}
             />
           </div>
@@ -177,8 +235,8 @@ export function AdvancedSearchSheet({ open, onOpenChange, params, setParams }: F
                 <p className="text-caption text-faint-foreground">{t(row.hint)}</p>
               </div>
               <Switch
-                checked={params[row.field]}
-                onCheckedChange={(v) => setParams((p) => ({ ...p, [row.field]: v }))}
+                checked={draft[row.field]}
+                onCheckedChange={(v) => setDraft((p) => ({ ...p, [row.field]: v }))}
                 aria-label={t(row.label)}
               />
             </div>
@@ -190,25 +248,11 @@ export function AdvancedSearchSheet({ open, onOpenChange, params, setParams }: F
             <Button
               variant="outline"
               size="sm"
-              onClick={() =>
-                setParams((p) => ({
-                  ...p,
-                  minRating: null,
-                  minPages: null,
-                  maxPages: null,
-                  enableUploader: true,
-                  enableTags: true,
-                  searchDesc: false,
-                  searchTorrent: false,
-                  searchLowPowerTags: false,
-                  searchDownvotedTags: false,
-                  searchExpunged: false,
-                }))
-              }
+              onClick={() => setDraft((p) => ({ ...p, ...ADVANCED_DEFAULTS }))}
             >
               {t("list.sheet.reset")}
             </Button>
-            <Button size="sm" onClick={() => onOpenChange(false)}>
+            <Button size="sm" onClick={apply}>
               {t("list.sheet.apply")}
             </Button>
           </div>

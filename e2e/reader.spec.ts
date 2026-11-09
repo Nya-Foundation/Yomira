@@ -38,3 +38,34 @@ test("continuous reader restores its saved page without counting overscan as vis
   await scroll.evaluate((el) => { el.scrollTop = 0; });
   await expect(slider).toHaveValue("0");
 });
+
+// With the controls hidden, the only way back was a 44px button in the corner;
+// the middle of the page did nothing. Paging edges and swipes must be
+// unaffected by the tap that now toggles them.
+test("a still tap in the middle toggles the controls, while edges and swipes still page", async ({ page }) => {
+  await page.goto("/read/1/abc");
+  const slider = page.getByRole("slider", { name: "Page", exact: true });
+  await expect(slider).toHaveValue("0");
+
+  const box = (await page.locator("[data-reader-surface]").boundingBox())!;
+  const cx = box.x + box.width / 2;
+  const cy = box.y + box.height / 2;
+
+  await page.mouse.click(cx, cy);
+  await expect(slider).toBeHidden();
+  await page.mouse.click(cx, cy);
+  await expect(slider).toBeVisible();
+
+  // right edge zone: pages, and leaves the controls alone
+  await page.mouse.click(box.x + box.width * 0.93, cy);
+  await expect(slider).toHaveValue("1");
+  await expect(slider).toBeVisible();
+
+  // a drag past the swipe threshold pages instead of toggling
+  await page.mouse.move(cx, cy);
+  await page.mouse.down();
+  await page.mouse.move(cx - 120, cy, { steps: 10 });
+  await page.mouse.up();
+  await expect(slider).toHaveValue("2");
+  await expect(slider).toBeVisible();
+});

@@ -79,10 +79,9 @@ export function GalleryDetailPage() {
   const [ratingOpen, setRatingOpen] = useState(false);
   const favNoteQuery = useQuery({
     queryKey: ["favorite-note", gidNum],
-    queryFn: () => getFavoriteNote(gidNum),
+    queryFn: () => getFavoriteNote(gidNum, token),
     enabled: isFavorited,
-    // Notes change rarely, and the lookup walks favorites pages server-side —
-    // re-running it per mount is a request storm the site will punish.
+    // Notes change rarely and only through this screen's own mutation.
     staleTime: Infinity,
     refetchOnMount: false,
     retry: 0,
@@ -228,6 +227,8 @@ export function GalleryDetailPage() {
           open={favNoteOpen}
           onOpenChange={setFavNoteOpen}
           draft={favNoteDraft}
+          status={favNoteQuery.isPending ? "loading" : favNoteQuery.isError ? "error" : "ready"}
+          onRetry={() => void favNoteQuery.refetch()}
           onDraftChange={setFavNoteDraft}
           saving={favNoteMutation.isPending}
           onSave={() => favNoteMutation.mutate(favNoteDraft.trim())}

@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
+import { Skeleton } from "../ui/skeleton";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { getPreviewSet } from "../../lib/api";
 import type { PreviewSet } from "../../lib/types";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useT } from "../../lib/i18n";
 import { CachedImage } from "../ui/cached-image";
 
@@ -50,33 +52,72 @@ export function PreviewPager({
         ))}
         {query.isLoading &&
           Array.from({ length: 20 }, (_, i) => (
-            <div key={i} className="aspect-[3/4] animate-pulse rounded-md bg-surface-2" />
+            <Skeleton key={i} className="aspect-[3/4]" />
           ))}
       </div>
       {groups > 1 && (
         <div className="mt-3 flex items-center justify-center gap-1">
-          {Array.from({ length: Math.min(groups, 12) }, (_, i) => (
-            <button
-              key={i}
-              onClick={() => setGroup(i)}
-              aria-label={t("detail.previewGroup", { n: i + 1 })}
-              aria-current={i === group}
-              className={
-                i === group
-                  ? "h-6 min-w-6 rounded-md bg-accent/20 px-1 text-caption font-medium text-accent"
-                  : "h-6 min-w-6 rounded-md px-1 text-caption text-muted-foreground transition-colors hover:bg-surface-2 hover:text-foreground"
-              }
-            >
-              {i + 1}
-            </button>
-          ))}
-          {groups > 12 && (
-            <span className="text-caption text-faint-foreground">
-              {t("detail.moreGroups", { n: groups - 12 })}
-            </span>
+          <button
+            onClick={() => setGroup(Math.max(0, group - 1))}
+            disabled={group === 0}
+            aria-label={t("detail.previewPrevGroup")}
+            className="h-6 rounded-md px-1 text-caption text-muted-foreground transition-colors hover:bg-surface-2 hover:text-foreground disabled:opacity-40"
+          >
+            <ChevronLeft size={14} />
+          </button>
+          {groupWindow(group, groups).map((entry, i) =>
+            entry === "gap" ? (
+              <span key={`gap${i}`} aria-hidden className="px-0.5 text-caption text-faint-foreground">
+                &hellip;
+              </span>
+            ) : (
+              <button
+                key={entry}
+                onClick={() => setGroup(entry)}
+                aria-label={t("detail.previewGroup", { n: entry + 1 })}
+                aria-current={entry === group}
+                className={
+                  entry === group
+                    ? "h-6 min-w-6 rounded-md bg-accent/20 px-1 text-caption font-medium text-accent"
+                    : "h-6 min-w-6 rounded-md px-1 text-caption text-muted-foreground transition-colors hover:bg-surface-2 hover:text-foreground"
+                }
+              >
+                {entry + 1}
+              </button>
+            ),
           )}
+          <button
+            onClick={() => setGroup(Math.min(groups - 1, group + 1))}
+            disabled={group === groups - 1}
+            aria-label={t("detail.previewNextGroup")}
+            className="h-6 rounded-md px-1 text-caption text-muted-foreground transition-colors hover:bg-surface-2 hover:text-foreground disabled:opacity-40"
+          >
+            <ChevronRight size={14} />
+          </button>
         </div>
       )}
     </div>
   );
+}
+
+/**
+ * Group numbers to show: always the first and last, plus a span either side of
+ * the current one, with a gap marker where numbers are skipped. The pager used
+ * to render the first twelve and then state how many more existed without
+ * offering any way to reach them, so a 383-page gallery had no preview access
+ * past page 240.
+ */
+function groupWindow(current: number, total: number, span = 2): (number | "gap")[] {
+  const want = new Set<number>([0, total - 1]);
+  for (let i = current - span; i <= current + span; i++) {
+    if (i >= 0 && i < total) want.add(i);
+  }
+  const out: (number | "gap")[] = [];
+  let previous = -1;
+  for (const n of [...want].sort((a, b) => a - b)) {
+    if (previous >= 0 && n - previous > 1) out.push("gap");
+    out.push(n);
+    previous = n;
+  }
+  return out;
 }

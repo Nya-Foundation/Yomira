@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import type { GalleryDetail } from "../../lib/types";
 import { categoryLabel, useT } from "../../lib/i18n";
-import { CATEGORY_COLORS } from "../../lib/categories";
+import { useBadgeColors } from "../../lib/categories";
 import { formatBytes, formatCount, formatRelativeTime } from "../../lib/utils";
 import { CachedImage } from "../ui/cached-image";
 import { CategoryBadge } from "../ui/badge";
@@ -12,6 +12,7 @@ import { CategoryBadge } from "../ui/badge";
  * info column (rating + action buttons).
  */
 export function GalleryHeader({ d, children }: { d: GalleryDetail; children?: ReactNode }) {
+  const badge = useBadgeColors();
   const t = useT();
   return (
     <div className="flex flex-col gap-6 sm:flex-row sm:gap-8">
@@ -26,7 +27,7 @@ export function GalleryHeader({ d, children }: { d: GalleryDetail; children?: Re
 
       <div className="min-w-0 flex-1 space-y-4">
         <div className="flex flex-wrap items-center gap-2">
-          <CategoryBadge color={CATEGORY_COLORS[d.category]}>{categoryLabel(d.category)}</CategoryBadge>
+          <CategoryBadge color={badge.category(d.category)}>{categoryLabel(d.category)}</CategoryBadge>
           <span className="text-caption text-faint-foreground">
             {formatRelativeTime(d.posted)}
           </span>

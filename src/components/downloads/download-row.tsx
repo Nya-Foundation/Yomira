@@ -1,13 +1,14 @@
 import { BookOpen, Pause, Play, Trash2 } from "lucide-react";
 import { Link } from "react-router-dom";
-import { CATEGORY_COLORS } from "../../lib/categories";
+import { useBadgeColors } from "../../lib/categories";
 import { useT, type TKey } from "../../lib/i18n";
 import { readProgress } from "../../lib/reading-progress";
 import type { DownloadEntry, DownloadState } from "../../lib/types";
 import { cn } from "../../lib/utils";
 import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
-import { Select } from "../ui/select";
+import { Checkbox } from "../ui/checkbox";
+import { LabelSelect } from "./label-select";
 
 const STATE_VARIANTS: Record<DownloadState, "outline" | "accent" | "warning" | "danger" | "success"> = {
   none: "outline",
@@ -54,17 +55,16 @@ export function DownloadRow({
   const readerPath = `/read/${d.gid}/${d.token}?source=download`;
   const savedPosition = readProgress(d.gid);
   const progress = d.pages > 0 ? Math.min(1, d.finishedPages / d.pages) : 0;
-  const categoryColor = CATEGORY_COLORS[d.category as keyof typeof CATEGORY_COLORS];
+  const categoryColor = useBadgeColors().category(d.category as Parameters<ReturnType<typeof useBadgeColors>["category"]>[0]);
 
   return (
     <div className="flex flex-wrap items-center gap-3 border-b border-border px-4 py-4">
       {selectMode && (
-        <input
-          type="checkbox"
+        <Checkbox
           checked={selected}
           onChange={onToggleSelect}
           aria-label={d.title}
-          className="h-4 w-4 shrink-0 accent-accent"
+          className="shrink-0"
         />
       )}
       <Link
@@ -119,20 +119,12 @@ export function DownloadRow({
         {t(savedPosition > 0 ? "downloads.resumeOffline" : "downloads.readOffline")}
       </Link>}
       <div className="ml-auto flex shrink-0 items-center gap-1.5">
-        <Select
+        <LabelSelect
+          labels={labels}
           value={d.label ?? ""}
-          onChange={(e) => onAssignLabel(e.target.value === "" ? null : e.target.value)}
+          onChange={onAssignLabel}
           disabled={busy}
-          aria-label={t("downloads.assignLabel")}
-          className="w-32"
-        >
-          <option value="">{t("downloads.noLabel")}</option>
-          {labels.map((label) => (
-            <option key={label} value={label}>
-              {label}
-            </option>
-          ))}
-        </Select>
+        />
         {d.state === "downloading" || d.state === "queued" ? (
           <Button variant="outline" size="icon" onClick={onPause} disabled={busy} aria-label={t("downloads.pause")}>
             <Pause size={14} strokeWidth={1.75} />

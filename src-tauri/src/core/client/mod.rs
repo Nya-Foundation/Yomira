@@ -99,19 +99,68 @@ pub struct EhClient {
     /// In-flight image dedup: url|referer → shared fetch result.
     in_flight: Arc<InFlightMap>,
     /// Preview sets and harvested ptokens for ptoken resolution, keyed
-    /// `(gid, gtoken, ...)`; shared so the reader and the download
-    /// engine don't re-hit the site for the same preview page.
+    /// `(gid, gtoken, ...)`. Per client instance: the reader and the download
+    /// engine run separate clients, so they do not share these entries.
     preview_cache: Arc<tokio::sync::Mutex<PreviewCache>>,
-    /// Site-wide request throttle: HTML/API calls are spaced at least this
-    /// far apart so a browsing session (or the reader's preload burst) can
-    /// never trip e-hentai's "excessive request rate" IP ban. Image byte
-    /// fetches bypass this (they use `request` directly).
-    throttle: tokio::sync::Mutex<Instant>,
+    /// Site-wide request pacing, shared by the reader and the download
+    /// engine. Image byte fetches bypass it (they use `request` directly).
+    throttle: tokio::sync::Mutex<Slots>,
 }
 
 /// Minimum spacing between site HTML/API requests (e-hentai rate-limits by
-/// IP; the original client throttles to roughly this rate too).
+/// IP; the original client throttles to roughly this rate too). Spacing calls
+/// this far apart is what keeps a browsing session, or the reader's preload
+/// burst, from tripping the "excessive request rate" IP ban.
 const SITE_REQUEST_INTERVAL: Duration = Duration::from_millis(500);
+
+/// How long the download engine stands aside after an interactive request, so
+/// a running queue does not add latency to something a person is waiting on.
+const BACKGROUND_YIELD: Duration = Duration::from_millis(1500);
+
+/// Ceiling on that deferral. Without it, browsing steadily enough would push
+/// the queue back indefinitely and downloads would never progress.
+const BACKGROUND_MAX_DELAY: Duration = Duration::from_millis(3000);
+
+tokio::task_local! {
+    /// Present while background work drives the client.
+    static BACKGROUND_WORK: ();
+}
+
+/// Run `fut` as background work: its site requests yield to interactive ones.
+/// Set at the [`crate::download::PageSource`] boundary, which also covers the
+/// download engine's spawned page-resolution lookahead.
+pub async fn as_background<T>(fut: impl std::future::Future<Output = T>) -> T {
+    BACKGROUND_WORK.scope((), fut).await
+}
+
+fn is_background() -> bool {
+    BACKGROUND_WORK.try_with(|_| ()).is_ok()
+}
+
+/// Reserved request slots. `next` is the earliest any request may go out;
+/// `next_background` additionally holds the download engine back. Both share
+/// one rate budget, because the site limits by IP and not by subsystem.
+struct Slots {
+    next: Instant,
+    next_background: Instant,
+}
+
+/// Claim the next slot and report how long its caller must wait. Pure given
+/// `now`, so the pacing rules are testable without sleeping.
+fn reserve(slots: &mut Slots, now: Instant, background: bool) -> Duration {
+    let earliest = if background {
+        slots.next.max(slots.next_background).max(now)
+    } else {
+        slots.next.max(now)
+    };
+    slots.next = earliest + SITE_REQUEST_INTERVAL;
+    if !background {
+        slots.next_background = (earliest + BACKGROUND_YIELD)
+            .max(slots.next_background)
+            .min(now + BACKGROUND_MAX_DELAY);
+    }
+    earliest.saturating_duration_since(now)
+}
 
 type InFlightCell = Arc<tokio::sync::OnceCell<Arc<Result<(Vec<u8>, String), EhError>>>>;
 type InFlightMap = Mutex<HashMap<String, InFlightCell>>;
@@ -155,11 +204,15 @@ impl EhClient {
             fix_thumb_url: AtomicBool::new(config.fix_thumb_url),
             in_flight: Arc::new(Mutex::new(HashMap::new())),
             preview_cache: Arc::new(tokio::sync::Mutex::new(PreviewCache::default())),
-            throttle: tokio::sync::Mutex::new(
-                Instant::now()
+            throttle: tokio::sync::Mutex::new({
+                let idle = Instant::now()
                     .checked_sub(SITE_REQUEST_INTERVAL)
-                    .unwrap_or_else(Instant::now),
-            ),
+                    .unwrap_or_else(Instant::now);
+                Slots {
+                    next: idle,
+                    next_background: idle,
+                }
+            }),
         })
     }
 
@@ -261,18 +314,21 @@ impl EhClient {
         self.client().request(method, url)
     }
 
-    /// Wait until the next site request slot is due, spacing HTML/API calls
-    /// at least [`SITE_REQUEST_INTERVAL`] apart. Wakers reserve their slot
-    /// before sleeping so a burst of waiters drains sequentially without a
-    /// thundering herd re-firing together.
+    /// Wait until this request's slot is due. Waiters reserve a slot before
+    /// sleeping, so a burst drains sequentially without a thundering herd,
+    /// and background work takes its slots behind interactive requests.
+    ///
+    /// A background request that has already reserved a slot keeps it, so an
+    /// interactive request arriving mid-flight waits at most one interval
+    /// rather than the whole queue's worth.
     async fn throttle_acquire(&self) {
-        let mut last = self.throttle.lock().await;
-        let next = (*last + SITE_REQUEST_INTERVAL).max(Instant::now());
-        *last = next;
-        drop(last);
-        let now = Instant::now();
-        if next > now {
-            tokio::time::sleep(next - now).await;
+        let background = is_background();
+        let wait = {
+            let mut slots = self.throttle.lock().await;
+            reserve(&mut slots, Instant::now(), background)
+        };
+        if !wait.is_zero() {
+            tokio::time::sleep(wait).await;
         }
     }
 

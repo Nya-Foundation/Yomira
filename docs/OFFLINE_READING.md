@@ -1,7 +1,5 @@
 # Offline reading
 
-Implemented 2026-09-07.
-
 ## Use it
 
 1. Add a gallery to Downloads while connected and let its pages save.
@@ -31,10 +29,15 @@ Screenshots use synthetic browser fixtures.
 
 ## Validation
 
-- Rust integration: download through a fixture source, reopen the database/manager, start a fresh loopback server with an empty cache, and retrieve the original saved bytes. Offline reads make no image-source calls. Coverage includes partial galleries, legacy names, AVIF content type, wrong tokens, missing and restored files, path boundaries, and repair without refetching saved pages.
-- Browser tests: open from Downloads, resume after reload, explicit page selection, retry newly available pages, unknown downloads, unreadable image recovery, and continuous reading at a narrow width. Remote HTTP hosts are blocked; local Vite assets remain reachable for reload. These use browser fixtures, not authenticated site downloads.
-- Validation passed: production frontend build, 171 Rust tests, 21 Playwright browser tests, and Clippy with warnings denied. Actual image decoding and native packaging across Linux, Windows and macOS still need platform smoke testing with real downloaded galleries.
+The Rust suite downloads through a fixture source, reopens the database and
+manager, serves from a fresh loopback server with an empty cache, and asserts
+the original bytes come back without any image-source call — across partial
+galleries, legacy filenames, avif content, wrong tokens, missing and restored
+files, path boundaries, and repair that does not refetch saved pages. Browser
+fixtures cover both reader modes, resume after reload and unreadable-page
+recovery with remote hosts blocked. Neither exercises authenticated downloads,
+real image decoding or native packaging; those remain a release check on each
+desktop platform. Outstanding work is listed in the [roadmap](ROADMAP.md).
 
-## Remaining scope
-
-Rich offline detail pages, arbitrary folder/archive import, checksum-based integrity checks, native folder selection, and migration of existing downloads when changing the destination remain separate work. Changing the configured download root still does not move old folders; reconnect or restore the original root to read files stored there. Background account/tag checks elsewhere in the application are separate from the disk-only reader path.
+Changing the configured download root does not move folders that already
+exist. Reconnect or restore the original root to read files stored there.

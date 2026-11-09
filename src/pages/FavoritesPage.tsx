@@ -1,10 +1,13 @@
 import { nextListPage } from "../lib/pagination";
+import { infiniteGridProps } from "../lib/infinite-grid";
+import { ScrollRow } from "../components/layout/page-chrome";
 import type { ListPage } from "../lib/types";
 import { useState } from "react";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { getFavorites, checkSignIn, isNotSignedIn, type FavoriteSort } from "../lib/api";
 import { cn } from "../lib/utils";
 import { GalleryGrid } from "../components/gallery/gallery-grid";
+import { GalleryViewToggle } from "../components/gallery/view-toggle";
 import { EmptyState } from "../components/ui/empty-state";
 import { FilterChip } from "../components/ui/filter-chip";
 import { GhostLink } from "../components/ui/button";
@@ -20,6 +23,7 @@ export function FavoritesPage() {
   return (
     <div className="flex h-full flex-col">
       <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-border px-4 py-3">
+        <GalleryViewToggle />
         <div className="flex items-center rounded-md border border-border p-0.5">
           {(["f", "p"] as const).map((s) => (
             <button
@@ -37,12 +41,12 @@ export function FavoritesPage() {
             </button>
           ))}
         </div>
-        <div className="flex items-center gap-1.5 overflow-x-auto">
+        <ScrollRow>
           <FilterChip active={slot === null} onClick={() => setSlot(null)} label={t("favorites.all")} />
           {Array.from({ length: 10 }, (_, i) => (
             <FilterChip key={i} active={slot === i} onClick={() => setSlot(i)} label={`${i + 1}`} />
           ))}
-        </div>
+        </ScrollRow>
       </div>
       <OnlineFavorites slot={slot} sort={sort} />
     </div>
@@ -81,13 +85,9 @@ function OnlineFavorites({ slot, sort }: { slot: number | null; sort: FavoriteSo
   return (
     <GalleryGrid
       className="flex-1"
+      scrollKey={`favorites|${slot ?? "all"}|${sort}`}
       galleries={items}
-      loading={query.isLoading}
-      error={query.isError}
-      onRetry={() => void (query.isFetchNextPageError ? query.fetchNextPage() : query.refetch())}
-      hasNextPage={query.hasNextPage ?? false}
-      isFetchingNextPage={query.isFetchingNextPage}
-      onLoadMore={() => void query.fetchNextPage()}
+      {...infiniteGridProps(query)}
       emptyTitle={signedIn === false ? t("favorites.demoEmpty") : t("favorites.empty")}
       emptyDescription={
         signedIn === false

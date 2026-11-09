@@ -1,16 +1,18 @@
 import { nextListPage } from "../lib/pagination";
+import { PageToolbar, ScrollRow } from "../components/layout/page-chrome";
 import type { ListPage } from "../lib/types";
-import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowRightToLine, Filter, Image as ImageIcon, Info, Plus, Search, SlidersHorizontal, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import { GalleryGrid } from "../components/gallery/gallery-grid";
+import { GalleryViewToggle } from "../components/gallery/view-toggle";
 import { QuotaBar } from "../components/gallery/quota-bar";
 import { AdvancedSearchSheet, CategorySheet } from "../components/search/filter-sheets";
 import { ImageSearchDialog, type ImageSearchResult } from "../components/search/image-search-dialog";
 import { SearchHistoryDropdown } from "../components/search/search-history";
 import { useTagAutocomplete } from "../components/search/tag-autocomplete";
-import { Button } from "../components/ui/button";
+import { Button, GhostLink } from "../components/ui/button";
 import { Dialog } from "../components/ui/dialog";
 import { Input } from "../components/ui/input";
 import { Tooltip } from "../components/ui/tooltip";
@@ -29,6 +31,8 @@ import {
   type GalleryInfo,
   type ListParams
 } from "../lib/types";
+import { MODE_CAPS } from "../lib/list-modes";
+import { infiniteGridProps } from "../lib/infinite-grid";
 import { useDebounced } from "../lib/use-debounced";
 import { useToastedMutation } from "../lib/use-toasted-mutation";
 import { cn } from "../lib/utils";
@@ -39,11 +43,18 @@ interface SavedListState {
   startPage: number;
 }
 
+const LIST_STATE = "exviewer.liststate";
+
+
+/** History entries per destination whose exact state is retained. Older ones
+ * fall back to the destination's last state rather than growing without end. */
+const LIST_STATE_LIMIT = 12;
+
 /** Per-mode list state (search text, filters, jump target) so navigating
  * into a gallery/reader and back restores the exact previous state. */
 function loadListState(mode: string, entry: string): SavedListState | null {
   try {
-    const raw = sessionStorage.getItem(`exviewer.liststate.${mode}.${entry}`) ?? sessionStorage.getItem(`exviewer.liststate.${mode}`);
+    const raw = sessionStorage.getItem(`${LIST_STATE}.${mode}.${entry}`) ?? sessionStorage.getItem(`${LIST_STATE}.${mode}`);
     if (!raw) return null;
     const parsed = JSON.parse(raw) as Partial<SavedListState>;
     if (typeof parsed.searchInput !== "string" || typeof parsed.params !== "object" || parsed.params === null) {
@@ -61,8 +72,23 @@ function loadListState(mode: string, entry: string): SavedListState | null {
 
 function saveListState(mode: string, entry: string, state: SavedListState) {
   try {
-    sessionStorage.setItem(`exviewer.liststate.${mode}`, JSON.stringify(state));
-    sessionStorage.setItem(`exviewer.liststate.${mode}.${entry}`, JSON.stringify(state));
+    const blob = JSON.stringify(state);
+    sessionStorage.setItem(`${LIST_STATE}.${mode}`, blob);
+    sessionStorage.setItem(`${LIST_STATE}.${mode}.${entry}`, blob);
+
+    const indexKey = `${LIST_STATE}.${mode}:index`;
+    let prior: string[] = [];
+    try {
+      const raw: unknown = JSON.parse(sessionStorage.getItem(indexKey) ?? "[]");
+      if (Array.isArray(raw)) prior = raw.filter((id): id is string => typeof id === "string");
+    } catch {
+      /* unreadable index — rebuild it from this entry */
+    }
+    const kept = [entry, ...prior.filter((id) => id !== entry)];
+    for (const stale of kept.splice(LIST_STATE_LIMIT)) {
+      sessionStorage.removeItem(`${LIST_STATE}.${mode}.${stale}`);
+    }
+    sessionStorage.setItem(indexKey, JSON.stringify(kept));
   } catch {
     /* storage full or unavailable — state restore is best-effort */
   }
@@ -70,13 +96,19 @@ function saveListState(mode: string, entry: string, state: SavedListState) {
 
 export function GalleryListPage({ mode }: { mode: ListMode }) {
   const t = useT();
+  const caps = MODE_CAPS[mode];
+  const queryClient = useQueryClient();
   const location = useLocation();
   const [saved] = useState(() => loadListState(mode, location.key));
   const [params, setParams] = useState<ListParams>(() => ({ ...(saved?.params ?? DEFAULT_LIST_PARAMS), search: new URLSearchParams(location.search).get("search") ?? saved?.searchInput ?? "" }));
   const [searchInput, setSearchInput] = useState<string>(
     () => new URLSearchParams(window.location.search).get("search") ?? saved?.searchInput ?? "",
   );
-  const search = useDebounced(searchInput, 300);
+  // 300ms is shorter than an ordinary pause between words, so composing a
+  // query executed a listing per pause — each taking a slot in the 500ms
+  // queue ahead of the search actually meant. Trimming before the debounce
+  // also stops a trailing space counting as a different query.
+  const search = useDebounced(searchInput.trim(), 700);
   const [catSheetOpen, setCatSheetOpen] = useState(false);
   const [advSheetOpen, setAdvSheetOpen] = useState(false);
   const [newQuick, setNewQuick] = useState("");
@@ -86,6 +118,9 @@ export function GalleryListPage({ mode }: { mode: ListMode }) {
   const [startPage, setStartPage] = useState(saved?.startPage ?? 0);
   const [jumpOpen, setJumpOpen] = useState(false);
   const [jumpValue, setJumpValue] = useState("1");
+  // The quick-search row costs a full band; with nothing saved it held only a
+  // label and an empty input, so it appears once there is something in it.
+  const [quickAdding, setQuickAdding] = useState(false);
   const searchRef = useRef<HTMLInputElement>(null);
   const autocomplete = useTagAutocomplete({
     query: searchInput,
@@ -117,10 +152,20 @@ export function GalleryListPage({ mode }: { mode: ListMode }) {
 
   useEffect(() => {
     setParams((p) => ({ ...p, search }));
-    // The debounced value landing here is the point where a search actually
-    // executes; that is when the term enters the history.
-    if (search.trim()) recordSearch(search.trim());
   }, [search]);
+
+  /**
+   * History records what was committed, not every prefix the user happened to
+   * pause inside: it used to fill with fragments like "artist:" that nobody
+   * searched for, which then crowded out the real terms in the dropdown.
+   */
+  const commitSearch = () => {
+    const term = searchInput.trim();
+    if (!term) return;
+    void Promise.resolve(recordSearch(term)).then(() =>
+      queryClient.invalidateQueries({ queryKey: ["search-history"] }),
+    );
+  };
 
   // any change to the search params or mode starts the listing back at page 1.
   // Identity changes don't count (the debounced search re-sets params with the
@@ -205,9 +250,11 @@ export function GalleryListPage({ mode }: { mode: ListMode }) {
       {mode === "home" && location.pathname === "/" && <QuotaBar />}
 
       {/* toolbar */}
-      <div className="flex shrink-0 flex-col gap-2 border-b border-border px-4 pb-3 pt-3">
+      {(caps.query || caps.jump) && (
+      <PageToolbar>
         <div className="flex flex-wrap items-center gap-2">
-          <div className="relative w-full min-w-0 sm:w-auto sm:flex-1">
+          {caps.query && (<>
+          <div className="app-search relative w-full min-w-0 sm:w-auto sm:min-w-72 sm:flex-1">
             <Search
               size={14}
               className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-faint-foreground"
@@ -218,7 +265,10 @@ export function GalleryListPage({ mode }: { mode: ListMode }) {
               value={searchInput}
               onChange={(e) => { setSearchInput(e.target.value); autocomplete.onSelect(e); }}
               onSelect={autocomplete.onSelect}
-              onKeyDown={autocomplete.onKeyDown}
+              onKeyDown={(e) => {
+                autocomplete.onKeyDown(e);
+                if (e.key === "Enter" && !e.defaultPrevented) commitSearch();
+              }}
               onFocus={() => {
                 autocomplete.onFocus();
                 setHistFocused(true);
@@ -226,9 +276,10 @@ export function GalleryListPage({ mode }: { mode: ListMode }) {
               onBlur={() => {
                 autocomplete.onBlur();
                 setHistFocused(false);
+                commitSearch();
               }}
               placeholder={t("list.searchPlaceholder")}
-              className="pl-8 pr-9"
+              className="pl-8 pr-9 pointer-coarse:pr-15"
               aria-label={t("list.searchAria")}
             />
             {autocomplete.dropdown}
@@ -263,7 +314,8 @@ export function GalleryListPage({ mode }: { mode: ListMode }) {
           >
             <ImageIcon size={14} />
           </Button>
-          {!(firstPage?.pages === 0 && typeof firstPage.nextPage === "string") && <Tooltip content={t("jump.title")} side="bottom">
+          </>)}
+          {caps.jump && !(firstPage?.pages === 0 && typeof firstPage.nextPage === "string") && <Tooltip content={t("jump.title")} side="bottom">
             <span tabIndex={0} className="inline-flex">
               <Button
                 variant="outline"
@@ -275,6 +327,18 @@ export function GalleryListPage({ mode }: { mode: ListMode }) {
               </Button>
             </span>
           </Tooltip>}
+          {caps.query && quickEntries.length === 0 && !quickAdding && (
+            <Button
+              variant="outline"
+              size="md"
+              onClick={() => setQuickAdding(true)}
+              aria-label={t("list.addQuickAria")}
+            >
+              <Plus size={14} />
+            </Button>
+          )}
+          <GalleryViewToggle />
+          {caps.query && (
           <Button
             variant={advActive ? "default" : "outline"}
             size="md"
@@ -284,11 +348,12 @@ export function GalleryListPage({ mode }: { mode: ListMode }) {
             <SlidersHorizontal size={14} />
             <span className="hidden sm:inline">{t("list.advanced")}</span>
           </Button>
+          )}
         </div>
 
         {/* quick search chips */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5">
-          <span className="shrink-0 text-small text-faint-foreground">{t("list.quick")}</span>
+        {caps.query && (quickEntries.length > 0 || quickAdding) && (
+        <ScrollRow label={t("list.quick")}>
           {quickEntries.map((q) => (
             <span
               key={q.id}
@@ -341,8 +406,10 @@ export function GalleryListPage({ mode }: { mode: ListMode }) {
               <Plus size={13} />
             </button>
           </form>
-        </div>
-      </div>
+        </ScrollRow>
+        )}
+      </PageToolbar>
+      )}
 
       {imageResults ? (
         <>
@@ -377,12 +444,7 @@ export function GalleryListPage({ mode }: { mode: ListMode }) {
           className="flex-1"
           scrollKey={scrollKey}
           galleries={galleries}
-          loading={query.isLoading}
-          error={query.isError}
-          onRetry={() => void (query.isFetchNextPageError ? query.fetchNextPage() : query.refetch())}
-          hasNextPage={query.hasNextPage ?? false}
-          isFetchingNextPage={query.isFetchingNextPage}
-          onLoadMore={() => void query.fetchNextPage()}
+          {...infiniteGridProps(query)}
           emptyTitle={t("list.emptyTitle")}
           emptyDescription={t("list.emptyDesc")}
           emptyAction={
@@ -463,13 +525,12 @@ function SignInBanner() {
   return (
     <div className="flex shrink-0 items-center gap-3 border-b border-accent/20 bg-accent/5 px-4 py-2">
       <Info size={15} className="shrink-0 text-accent" />
-      <p className="flex-1 text-small leading-5 text-muted-foreground">
-        {t("list.banner.guest")}{" "}
-        <Link to="/signin" className="font-medium text-accent hover:underline">
-          {t("common.signIn")}
-        </Link>{" "}
-        {t("list.banner.suffix")}
+      <p className="min-w-0 flex-1 text-small leading-5 text-muted-foreground">
+        {t("list.banner.guest")} {t("list.banner.suffix")}
       </p>
+      <GhostLink to="/signin" className="shrink-0">
+        {t("common.signIn")}
+      </GhostLink>
       <button
         aria-label={t("common.dismiss")}
         onClick={() => {

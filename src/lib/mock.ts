@@ -602,7 +602,6 @@ export const mock = {
     const items = entries.map((e) => ({
       ...getGallery(e.gid),
       favoriteSlot: e.slot,
-      favoriteNote: e.note,
       favoritedTime: e.time,
     }));
     items.sort((a, b) => (sort === "p" ? b.posted - a.posted : b.favoritedTime - a.favoritedTime));
@@ -751,11 +750,6 @@ export const mock = {
   async signOut(): Promise<void> {
     await delay(80, 150);
     localStorage.removeItem("exviewer.signed_in");
-  },
-
-  async getImage(url: string): Promise<string> {
-    await delay(80, 200);
-    return url;
   },
 
   // --- downloads ---

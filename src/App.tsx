@@ -30,6 +30,7 @@ const DownloadsPage = lazy(() =>
 const NewsPage = lazy(() => import("./pages/NewsPage").then((m) => ({ default: m.NewsPage })));
 import { useSettings, applyTheme, applyDensity, applyDisplayScale } from "./lib/settings";
 import { I18nProvider, useT } from "./lib/i18n";
+import { imageBaseReady, initImageSource } from "./lib/image-source";
 import { isEditableTarget } from "./lib/utils";
 import { useZoomShortcuts } from "./lib/use-zoom-shortcuts";
 
@@ -47,8 +48,29 @@ export default function App() {
   const density = useSettings((s) => s.settings.density);
   const displayScale = useSettings((s) => s.settings.displayScale);
 
+  // Only the setter is needed: the re-render is what lets thumbnails that
+  // already mounted pick up the image base URL once it lands.
+  const [, setImageBaseLanded] = useState(false);
   useEffect(() => {
-    void initSettings();
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    let attempts = 0;
+    /**
+     * An Android cold start drops the response to the first IPC call, and that
+     * promise then never settles — no error to catch, no rejection to retry.
+     * Nothing waits for these any more, because the remembered theme, density
+     * and scale carry the first paint, but the stored values still have to
+     * arrive: ask again until they do.
+     */
+    const pump = () => {
+      const needSettings = !useSettings.getState().loaded;
+      const needImages = !imageBaseReady();
+      if ((!needSettings && !needImages) || attempts++ > 20) return;
+      if (needSettings) void initSettings();
+      if (needImages) void initImageSource().then(() => setImageBaseLanded(true));
+      timer = setTimeout(pump, 250);
+    };
+    pump();
+    return () => clearTimeout(timer);
   }, [initSettings]);
 
   useEffect(() => {
@@ -80,10 +102,6 @@ export default function App() {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, []);
-
-  // Hold first paint until persisted settings (theme, density, display
-  // scale) are loaded so the saved scale applies without a flash.
-  if (!loaded) return null;
 
   return (
     <I18nProvider>

@@ -59,7 +59,7 @@ test("half-star filters reach native IPC and continue through an empty filtered 
   for (const rating of ["3.5", "4.5", "5"]) {
     await page.getByRole("button", { name: "Advanced search", exact: true }).click();
     await page.getByLabel("Minimum rating", { exact: true }).selectOption(rating);
-    await page.getByRole("dialog").getByRole("button", { name: "Close", exact: true }).click();
+    await page.getByRole("dialog").getByRole("button", { name: "Apply", exact: true }).click();
     await expect.poll(() => page.evaluate(() => (window as any).__ratings)).toContain(Number(rating));
     await expect(page.locator('main a[href="/gallery/26/fixture"]')).toBeVisible();
   }

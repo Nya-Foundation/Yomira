@@ -28,7 +28,7 @@
 //!   runtime, fully independent of the app's runtime; the resolved port
 //!   travels back through an mpsc channel.
 
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
 use std::path::{Path, PathBuf};
 use std::sync::{mpsc, Arc, RwLock};
 use std::time::Duration;
@@ -39,8 +39,21 @@ use tokio::net::{TcpListener, TcpStream};
 /// Saved pages have stable opaque names and are streamed from their original
 /// files. The webview cannot supply a filesystem path. Entries are re-created
 /// on demand after restart; nothing depends on a previous ephemeral port.
+#[derive(Default)]
+struct Registry {
+    entries: HashMap<String, (PathBuf, PathBuf)>,
+    /// Registration order, so the oldest entry can be dropped at the cap.
+    order: VecDeque<String>,
+}
+
 #[derive(Clone, Default)]
-pub struct LocalImages(Arc<RwLock<HashMap<String, (PathBuf, PathBuf)>>>);
+pub struct LocalImages(Arc<RwLock<Registry>>);
+
+/// Saved pages held in the registry at once. A long reading session would
+/// otherwise accumulate an entry per page for the life of the process.
+/// Names are derived from the path, so an evicted page re-registers to the
+/// same name on its next request.
+const MAX_LOCAL_IMAGES: usize = 4096;
 
 impl LocalImages {
     pub fn register(&self, gallery_dir: &Path, path: &Path) -> Option<String> {
@@ -62,16 +75,110 @@ impl LocalImages {
             crate::image_cache::cache_key(&path.to_string_lossy()),
             ext
         );
-        self.0.write().ok()?.insert(name.clone(), (dir, path));
+        let mut registry = self.0.write().ok()?;
+        if registry.entries.insert(name.clone(), (dir, path)).is_none() {
+            registry.order.push_back(name.clone());
+            while registry.order.len() > MAX_LOCAL_IMAGES {
+                if let Some(evicted) = registry.order.pop_front() {
+                    registry.entries.remove(&evicted);
+                }
+            }
+        }
         Some(name)
     }
 
     fn resolve(&self, name: &str) -> Option<PathBuf> {
-        let (dir, path) = self.0.read().ok()?.get(name)?.clone();
+        let (dir, path) = self.0.read().ok()?.entries.get(name)?.clone();
         // Revalidate if a folder/file was moved, removed or replaced by a link.
         let actual = path.canonicalize().ok()?;
         (actual == path && actual.parent()? == dir).then_some(path)
     }
+}
+
+/// One pending remote-image resolution: the URL, and where to send the file
+/// that ends up backing it.
+pub type RemoteRequest = (String, tokio::sync::oneshot::Sender<Option<PathBuf>>);
+
+/// Handle the server uses to ask the application runtime to cache a remote
+/// image. This server runs its own runtime and must not drive reqwest itself:
+/// hyper pools connections against the reactor that created them, so a fetch
+/// started here would reuse connections belonging to the other runtime.
+#[derive(Clone)]
+pub struct RemoteResolver(tokio::sync::mpsc::Sender<RemoteRequest>);
+
+impl RemoteResolver {
+    pub fn channel() -> (Self, tokio::sync::mpsc::Receiver<RemoteRequest>) {
+        let (tx, rx) = tokio::sync::mpsc::channel(64);
+        (Self(tx), rx)
+    }
+
+    /// A resolver whose receiver is already dropped, so every request answers
+    /// `None`. Tests that only exercise the cache and saved-page routes use it.
+    #[cfg(test)]
+    pub fn disconnected() -> Self {
+        Self(tokio::sync::mpsc::channel(1).0)
+    }
+
+    async fn resolve(&self, url: &str) -> Option<PathBuf> {
+        let (reply, answer) = tokio::sync::oneshot::channel();
+        self.0.send((url.to_string(), reply)).await.ok()?;
+        answer.await.ok()?
+    }
+}
+
+/// Hosts the application will fetch from when the webview asks, verified
+/// against live traffic by `thumbnail_hosts_on_the_live_site`: covers come
+/// from `ehgt.org`, and preview strips from Hentai@Home nodes, whose
+/// subdomains are generated per node and so can only be matched by suffix.
+/// Reader pages are resolved through the IPC commands instead. Keeping this
+/// narrow is what stops the `/remote` route from being a way for any local
+/// process to make the app fetch an arbitrary URL.
+const THUMB_HOSTS: [&str; 4] = ["ehgt.org", "hath.network", "e-hentai.org", "exhentai.org"];
+
+/// Is `url` an `https` URL on an allowlisted thumbnail host? The host is the
+/// authority's last `@`-separated segment, so credentials cannot disguise it.
+pub fn is_allowed_thumb_url(url: &str) -> bool {
+    let Some(rest) = url.strip_prefix("https://") else {
+        return false;
+    };
+    let authority = rest.split(['/', '?', '#']).next().unwrap_or_default();
+    let host = authority
+        .rsplit('@')
+        .next()
+        .unwrap_or_default()
+        .split(':')
+        .next()
+        .unwrap_or_default()
+        .to_ascii_lowercase();
+    THUMB_HOSTS
+        .iter()
+        .any(|allowed| host == *allowed || host.ends_with(&format!(".{allowed}")))
+}
+
+/// Percent-decode a query value. `+` is left alone: `encodeURIComponent` never
+/// produces it for a space, and image URLs can contain a literal one.
+pub fn percent_decode(input: &str) -> Option<String> {
+    fn hex(byte: u8) -> Option<u8> {
+        match byte {
+            b'0'..=b'9' => Some(byte - b'0'),
+            b'a'..=b'f' => Some(byte - b'a' + 10),
+            b'A'..=b'F' => Some(byte - b'A' + 10),
+            _ => None,
+        }
+    }
+    let bytes = input.as_bytes();
+    let mut out = Vec::with_capacity(bytes.len());
+    let mut i = 0;
+    while i < bytes.len() {
+        if bytes[i] == b'%' {
+            out.push(hex(*bytes.get(i + 1)?)? * 16 + hex(*bytes.get(i + 2)?)?);
+            i += 3;
+        } else {
+            out.push(bytes[i]);
+            i += 1;
+        }
+    }
+    String::from_utf8(out).ok()
 }
 
 /// Maximum request head we'll read (plenty for one request line + headers).
@@ -102,6 +209,14 @@ impl RequestHead {
         let name = self.path.strip_prefix('/')?;
         is_safe_file_name(name).then_some(name)
     }
+
+    /// Target of a `/remote?u=<percent-encoded url>` request, when it names a
+    /// host the application is willing to fetch from.
+    pub fn remote_url(&self) -> Option<String> {
+        let encoded = self.path.strip_prefix("/remote?u=")?;
+        let url = percent_decode(encoded)?;
+        is_allowed_thumb_url(&url).then_some(url)
+    }
 }
 
 /// Does `name` have exactly the shape the cache produces?
@@ -111,7 +226,7 @@ pub fn is_safe_file_name(name: &str) -> bool {
     let Some((key, ext)) = name.rsplit_once('.') else {
         return false;
     };
-    let ext_ok = matches!(ext, "jpg" | "png" | "gif" | "webp");
+    let ext_ok = matches!(ext, "jpg" | "png" | "gif" | "webp" | "avif");
     let key_ok = key.len() == 16
         && key
             .bytes()
@@ -213,6 +328,7 @@ pub fn http_url(port: u16, file_name: &str) -> String {
 pub async fn serve(
     dir: PathBuf,
     local: LocalImages,
+    resolver: RemoteResolver,
     port_tx: mpsc::Sender<u16>,
 ) -> std::io::Result<()> {
     let listener = TcpListener::bind("127.0.0.1:0").await?;
@@ -228,8 +344,9 @@ pub async fn serve(
         let (stream, _peer) = listener.accept().await?;
         let dir = dir.clone();
         let local = local.clone();
+        let resolver = resolver.clone();
         tokio::spawn(async move {
-            if let Err(e) = handle_conn(stream, dir, local).await {
+            if let Err(e) = handle_conn(stream, dir, local, resolver).await {
                 eprintln!("[image-server] connection error: {e}");
             }
         });
@@ -238,14 +355,18 @@ pub async fn serve(
 
 /// Spawn the server on a dedicated OS thread with its own tokio runtime and
 /// return the resolved port (blocks until the listener is up).
-pub fn spawn_server(dir: PathBuf, local: LocalImages) -> std::io::Result<u16> {
+pub fn spawn_server(
+    dir: PathBuf,
+    local: LocalImages,
+    resolver: RemoteResolver,
+) -> std::io::Result<u16> {
     let (tx, rx) = mpsc::channel();
     std::thread::spawn(move || {
         let rt = tokio::runtime::Builder::new_current_thread()
             .enable_all()
             .build()
             .expect("image-server runtime");
-        if let Err(e) = rt.block_on(serve(dir, local, tx)) {
+        if let Err(e) = rt.block_on(serve(dir, local, resolver, tx)) {
             eprintln!("[image-server] fatal: {e}");
         }
     });
@@ -257,6 +378,7 @@ async fn handle_conn(
     mut stream: TcpStream,
     dir: PathBuf,
     local: LocalImages,
+    resolver: RemoteResolver,
 ) -> std::io::Result<()> {
     let mut buffer: Vec<u8> = Vec::with_capacity(1024);
     loop {
@@ -298,9 +420,25 @@ async fn handle_conn(
             continue;
         }
         let name = head.path.strip_prefix('/').unwrap_or_default();
-        let saved_path = local.resolve(name);
-        let Some(path) = saved_path
+        // `/remote?u=<url>` hands the fetch to the application runtime and
+        // serves whatever cache entry it produces.
+        let remote_path = match head.remote_url() {
+            // The resolver is the application itself, but keep the same
+            // invariant the other two routes hold: inside the cache dir only.
+            Some(url) => resolver
+                .resolve(&url)
+                .await
+                .filter(|path| path.parent() == Some(dir.as_path())),
+            None => None,
+        };
+        let saved_path = if remote_path.is_some() {
+            None
+        } else {
+            local.resolve(name)
+        };
+        let Some(path) = remote_path
             .clone()
+            .or_else(|| saved_path.clone())
             .or_else(|| head.file_name().map(|name| dir.join(name)))
         else {
             respond(
@@ -335,9 +473,13 @@ async fn handle_conn(
                 continue;
             }
         };
+        let served_name = path
+            .file_name()
+            .map(|n| n.to_string_lossy().into_owned())
+            .unwrap_or_default();
         respond_file(
             &mut stream,
-            content_type(name),
+            content_type(&served_name),
             &path,
             meta.len(),
             head.keep_alive,

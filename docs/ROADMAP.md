@@ -4,26 +4,20 @@ Priorities based on the current implementation and the original EhViewer workflo
 
 See [CHANGELOG.md](../CHANGELOG.md) for the initial development milestones.
 
-## Implemented foundation
-
-Browsing/search/categories/advanced filters, image search, tag translations, webview/cookie sign-in, gallery details/previews, online favorites/notes, ratings/comments, history/content blocks, paged/continuous reader, disk image cache, persistent download queue and labels, archive and torrent file saving, news and quota display.
-
-The interface now has adaptive navigation, shared modal behavior, measured gallery rows, scrollable utility pages, explicit reader controls and improved resume behavior. See [DESIGN_SYSTEM.md](DESIGN_SYSTEM.md).
-
-Local favorites, MyTags editing and data migration are **not** complete. A database table, parser or placeholder command does not constitute a finished feature.
+What already ships is listed in the [README](../README.md); the interface
+conventions behind it are in [DESIGN_SYSTEM.md](DESIGN_SYSTEM.md). Local
+favorites, MyTags editing and data migration are **not** complete. A database
+table, parser or placeholder command does not constitute a finished feature.
 
 ## Extend the offline library
 
-Delivered: Downloads opens saved files with no gallery-detail or page-token request, in both reader modes. Titles and page counts survive restart; saved position is restored from existing local persistence. Saved covers come from the download folder. Partial galleries expose actual availability and missing/unreadable page recovery. Resume repairs holes without downloading later saved pages again. See [OFFLINE_READING.md](OFFLINE_READING.md).
-
-Remaining:
+What offline reading already does, and the constraints it works under, are in
+[OFFLINE_READING.md](OFFLINE_READING.md). Remaining:
 
 - Rich offline gallery details (tags, comments and other metadata), rather than just reader metadata.
 - Optional checksum/decode verification and explicit repair tools for corrupted images.
 - Store reading progress in a versioned shared repository; surface it in detail/history/library.
 - Add native folder selection/open-folder and a safe strategy for existing files when the destination changes.
-
-Validation: Rust tests exercise disk/database reopen and local HTTP streaming independently of the network source; browser fixtures exercise resume, partial galleries and both reader modes. Packaged native smoke tests on Linux, Windows and macOS remain a release check.
 
 ## Make discovery and organization complete
 
@@ -37,7 +31,7 @@ Acceptance: users can save a specific search, reopen its exact criteria, organiz
 
 ## Improve reading comfort
 
-- Fit width/height/original size, fullscreen and native keep-awake. RTL and swipe navigation are available in 0.2.0.
+- Fit width/height/original size, fullscreen and native keep-awake. RTL and swipe navigation are already available.
 - Optional spreads, per-gallery overrides, image save/share and page bookmarks.
 - Unified prefetch limits and quota-aware coordination with downloads.
 - Profile pointer transforms, long sessions and image decoding before changing rendering architecture.
