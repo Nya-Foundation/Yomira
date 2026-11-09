@@ -310,8 +310,14 @@ mod tests {
             .unwrap()
             .insert("localhost".to_string(), vec![pinned]);
         let ips = futures_block_on(resolver.resolve("localhost")).unwrap();
-        assert!(ips.first().is_some_and(|ip| ip.is_loopback()), "got {ips:?}");
-        assert!(ips.contains(&pinned), "the table is still a fallback: {ips:?}");
+        assert!(
+            ips.first().is_some_and(|ip| ip.is_loopback()),
+            "got {ips:?}"
+        );
+        assert!(
+            ips.contains(&pinned),
+            "the table is still a fallback: {ips:?}"
+        );
     }
 
     fn futures_block_on<F: std::future::Future>(f: F) -> F::Output {
