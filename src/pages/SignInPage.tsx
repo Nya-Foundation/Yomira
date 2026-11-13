@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import { Globe, Loader2 } from "lucide-react";
 import { normalizeError, signInWithCookies, signInWithWebview } from "../lib/api";
 import { toast } from "../stores/toast";
@@ -11,12 +12,14 @@ import { Separator } from "../components/ui/separator";
 export function SignInPage() {
   const t = useT();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [webviewLoading, setWebviewLoading] = useState(false);
   const [cookieLoading, setCookieLoading] = useState(false);
   const [cookies, setCookies] = useState("");
   const [cookieError, setCookieError] = useState<string | null>(null);
 
   const done = () => {
+    void queryClient.invalidateQueries({ queryKey: ["signin"] });
     toast.success(t("signin.signedIn"), t("signin.welcome"));
     void navigate("/");
   };
