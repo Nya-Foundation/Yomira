@@ -15,6 +15,7 @@ import { useTagAutocomplete } from "../components/search/tag-autocomplete";
 import { Button, GhostLink } from "../components/ui/button";
 import { Dialog } from "../components/ui/dialog";
 import { Input } from "../components/ui/input";
+import { Tabs, tabButtonId, tabPanelId } from "../components/ui/tabs";
 import { Tooltip } from "../components/ui/tooltip";
 import {
   checkSignIn,
@@ -29,7 +30,8 @@ import { useT } from "../lib/i18n";
 import {
   DEFAULT_LIST_PARAMS,
   type GalleryInfo,
-  type ListParams
+  type ListParams,
+  type ToplistTimespan,
 } from "../lib/types";
 import { MODE_CAPS } from "../lib/list-modes";
 import { infiniteGridProps } from "../lib/infinite-grid";
@@ -37,21 +39,24 @@ import { useDebounced } from "../lib/use-debounced";
 import { useToastedMutation } from "../lib/use-toasted-mutation";
 import { cn } from "../lib/utils";
 
+const TOPLIST_TIMESPANS: ToplistTimespan[] = ["yesterday", "month", "year", "all"];
+
 interface SavedListState {
   params: ListParams;
   searchInput: string;
   startPage: number;
+  timespan: ToplistTimespan;
 }
 
 const LIST_STATE = "exviewer.liststate";
-
 
 /** History entries per destination whose exact state is retained. Older ones
  * fall back to the destination's last state rather than growing without end. */
 const LIST_STATE_LIMIT = 12;
 
-/** Per-mode list state (search text, filters, jump target) so navigating
- * into a gallery/reader and back restores the exact previous state. */
+/** Per-mode list state (search text, filters, jump target, toplist timespan)
+ * so navigating into a gallery/reader and back restores the exact previous
+ * state. */
 function loadListState(mode: string, entry: string): SavedListState | null {
   try {
     const raw = sessionStorage.getItem(`${LIST_STATE}.${mode}.${entry}`) ?? sessionStorage.getItem(`${LIST_STATE}.${mode}`);
@@ -64,6 +69,7 @@ function loadListState(mode: string, entry: string): SavedListState | null {
       params: { ...DEFAULT_LIST_PARAMS, ...parsed.params },
       searchInput: parsed.searchInput,
       startPage: Number(parsed.startPage) || 0,
+      timespan: parsed.timespan && TOPLIST_TIMESPANS.includes(parsed.timespan) ? parsed.timespan : "month",
     };
   } catch {
     return null;
@@ -100,6 +106,7 @@ export function GalleryListPage({ mode }: { mode: ListMode }) {
   const queryClient = useQueryClient();
   const location = useLocation();
   const [saved] = useState(() => loadListState(mode, location.key));
+  const [timespan, setTimespan] = useState<ToplistTimespan>(saved?.timespan ?? "month");
   const [params, setParams] = useState<ListParams>(() => ({ ...(saved?.params ?? DEFAULT_LIST_PARAMS), search: new URLSearchParams(location.search).get("search") ?? saved?.searchInput ?? "" }));
   const [searchInput, setSearchInput] = useState<string>(
     () => new URLSearchParams(window.location.search).get("search") ?? saved?.searchInput ?? "",
@@ -185,8 +192,8 @@ export function GalleryListPage({ mode }: { mode: ListMode }) {
 
   // persist the browsing state so back-navigation restores it verbatim
   useEffect(() => {
-    saveListState(mode, location.key, { params, searchInput, startPage });
-  }, [mode, location.key, params, searchInput, startPage]);
+    saveListState(mode, location.key, { params, searchInput, startPage, timespan });
+  }, [mode, location.key, params, searchInput, startPage, timespan]);
 
   useEffect(() => {
     const onFocus = () => searchRef.current?.focus();
@@ -195,8 +202,8 @@ export function GalleryListPage({ mode }: { mode: ListMode }) {
   }, []);
 
   const query = useInfiniteQuery({
-    queryKey: ["gallery-list", mode, params, startPage],
-    queryFn: ({ pageParam }) => getGalleryList({ ...params, page: pageParam }, mode),
+    queryKey: ["gallery-list", mode, params, startPage, timespan],
+    queryFn: ({ pageParam }) => getGalleryList({ ...params, page: pageParam }, mode, timespan),
     initialPageParam: startPage as ListPage,
     getNextPageParam: (last, _pages, _param, params) => nextListPage(last.nextPage, params),
     retry: 1,
@@ -229,8 +236,8 @@ export function GalleryListPage({ mode }: { mode: ListMode }) {
     }
     return out;
   }, [query.data]);
-  // distinct searches restore their own scroll offset on back-navigation
-  const scrollKey = `${mode}|${location.pathname}${location.search}|${JSON.stringify(params)}|${startPage}`;
+  // Distinct searches and toplist timespans restore their own scroll offset.
+  const scrollKey = `${mode}|${location.pathname}${location.search}|${JSON.stringify(params)}|${startPage}${mode === "toplist" ? `|${timespan}` : ""}`;
   const activeCatCount = params.categories?.length ?? 0;
   const advActive =
     params.minRating != null ||
@@ -252,6 +259,22 @@ export function GalleryListPage({ mode }: { mode: ListMode }) {
       {/* toolbar */}
       {(caps.query || caps.jump) && (
       <PageToolbar>
+        {mode === "toplist" && (
+          <Tabs
+            idBase="toplist-timespan"
+            className="self-start"
+            tabs={TOPLIST_TIMESPANS.map((value) => ({ value, label: t(`toplist.${value}`) }))}
+            value={timespan}
+            onValueChange={(value) => {
+              const next = TOPLIST_TIMESPANS.find((span) => span === value);
+              if (!next || next === timespan) return;
+              setTimespan(next);
+              setStartPage(0);
+              setJumpValue("1");
+              setImageResults(null);
+            }}
+          />
+        )}
         <div className="flex flex-wrap items-center gap-2">
           {caps.query && (<>
           <div className="app-search relative w-full min-w-0 sm:w-auto sm:min-w-72 sm:flex-1">
@@ -411,6 +434,18 @@ export function GalleryListPage({ mode }: { mode: ListMode }) {
       </PageToolbar>
       )}
 
+      <div
+        className="flex min-h-0 flex-1 flex-col"
+        // Toplist's tabs own this panel; other modes have no tablist, so a
+        // panel role here would be a dangling reference.
+        {...(mode === "toplist"
+          ? {
+              role: "tabpanel",
+              id: tabPanelId("toplist-timespan", timespan),
+              "aria-labelledby": tabButtonId("toplist-timespan", timespan),
+            }
+          : {})}
+      >
       {imageResults ? (
         <>
           <div className="flex shrink-0 items-center gap-2 border-b border-accent/20 bg-accent/5 px-4 py-1.5">
@@ -441,6 +476,7 @@ export function GalleryListPage({ mode }: { mode: ListMode }) {
         </>
       ) : (
         <GalleryGrid
+          key={timespan}
           className="flex-1"
           scrollKey={scrollKey}
           galleries={galleries}
@@ -461,6 +497,7 @@ export function GalleryListPage({ mode }: { mode: ListMode }) {
           }
         />
       )}
+      </div>
 
       <ImageSearchDialog
         open={imgSearchOpen}
