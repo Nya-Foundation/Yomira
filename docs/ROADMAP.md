@@ -23,7 +23,6 @@ What offline reading already does, and the constraints it works under, are in
 
 - Restore whole saved-search objects, including categories/rating/page limits.
 - Add local favorites, online favorite names/search and batch move/delete.
-- Expose toplist timespan selection.
 - Add download search, status/category filters, sorting and priority.
 - Provide MyTags/site settings access with the existing session.
 
