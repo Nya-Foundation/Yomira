@@ -58,6 +58,12 @@ const en = {
   "shortcuts.zoom": "Zoom interface / reader image",
   "shortcuts.zoomReset": "Reset zoom",
 
+  // toplist
+  "toplist.yesterday": "Yesterday",
+  "toplist.month": "Past month",
+  "toplist.year": "Past year",
+  "toplist.all": "All time",
+
   // common
   "common.retry": "Retry",
   "detail.favNoteLoading": "Loading your note…",
@@ -590,6 +596,12 @@ const zh: Record<TKey, string> = {
   "shortcuts.history": "后退 / 前进",
   "shortcuts.zoom": "缩放界面 / 阅读图片",
   "shortcuts.zoomReset": "重置缩放",
+
+  // toplist
+  "toplist.yesterday": "昨日",
+  "toplist.month": "过去一个月",
+  "toplist.year": "过去一年",
+  "toplist.all": "全部时间",
 
   "common.retry": "重试",
   "detail.favNoteLoading": "正在加载备注…",
